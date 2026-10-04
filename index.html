@@ -209,6 +209,7 @@ h1{letter-spacing:-.02em}
 .take.on{background:var(--pri);color:var(--pri-ink)}
 .lab{font-size:13px;color:var(--mut);margin:12px 0 6px}
 @media (min-width:721px){#rail{overflow-y:auto}#rail .nav{min-height:54px;flex:none}}
+.score.g{color:#34C759}.score.y{color:#E0A800}.score.r{color:#FF3B30}
 </style>
 </head>
 <body>
@@ -369,7 +370,7 @@ let mic=null;
 async function getMic(){if(mic&&mic.active)return mic;
   try{mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});return mic}
   catch(e){toast('Mikrofonia ei saatu käyttöön. Salli mikrofonin käyttö ja yritä uudelleen.');return null}}
-function releaseMic(){if(T.on||R.mr||!mic)return;mic.getTracks().forEach(t=>t.stop());mic=null;if(T.src){try{T.src.disconnect()}catch(e){}T.src=null;T.an=null}}
+function releaseMic(){if(T.on||R.mr||L.on||!mic)return;mic.getTracks().forEach(t=>t.stop());mic=null;if(T.src){try{T.src.disconnect()}catch(e){}T.src=null;T.an=null}}
 
 /* ---------- metronome ---------- */
 /* bar length (len) and unit length (n) are counted in eighth notes */
@@ -643,7 +644,7 @@ const TUN={just:[0,111.73,203.91,315.64,386.31,498.04,590.22,701.96,813.69,884.3
   pyth:[0,90.22,203.91,294.13,407.82,498.04,611.73,701.96,792.18,905.87,996.09,1109.78],
   et:[0,100,200,300,400,500,600,700,800,900,1000,1100]};
 const TUNL={just:'Puhdas',pyth:'Pytagoralainen',et:'Tasavireinen'};
-const AN={sid:null,rid:null,buf:null,trk:null,tok:0},TRK=new Map(),P={src:null,t0:0,off:0,pos:0,playing:false};
+const AN={mode:'rec',sid:null,rid:null,buf:null,trk:null,tok:0},TRK=new Map(),P={src:null,t0:0,off:0,pos:0,playing:false};
 const anSes=()=>S.active&&S.active.id===AN.sid?S.active:S.sessions.find(x=>x.id===AN.sid);
 const anRec=()=>{const s=anSes();return s&&s.recs.find(r=>r.id===AN.rid)};
 function anCfg(){const s=anSes(),r=anRec(),o=s.goals.find(x=>x.id===r.gid)||r;if(!o.cfg)o.cfg={...S.ui.cfg};return o.cfg}
@@ -665,11 +666,47 @@ function notesOf(t){const ns=[];let cur=null;const close=()=>{if(cur){ns.push(cu
     if(!cur)cur={k0:k,ms:[],sum:0};cur.ms.push(m);cur.sum+=m}
   close();
   return ns.map(n=>{const len=n.ms.length,core=(len>=5?n.ms.slice(1,-1):n.ms).slice().sort((a,b)=>a-b);
-    return {t0:Math.max(0,n.k0*t.dt+t.off-t.dt/2),t1:(n.k0+len-1)*t.dt+t.off+t.dt/2,m:core[core.length>>1],ok:len>=3}})}
+    const T=k=>t.ts?t.ts[k]:k*t.dt+t.off;
+    return {t0:Math.max(0,T(n.k0)-t.dt/2),t1:T(n.k0+len-1)+t.dt/2,m:core[core.length>>1],ok:len>=3}})}
 function evalNotes(ns,cfg,trim){const tab=TUN[cfg.tun].slice(),th=S.ui.thr;if(cfg.tun==='just'&&cfg.mode==='min')tab[10]=1017.6;
   return ns.map(n=>{const o={...n};if(!n.ok||(trim&&(n.t1<trim[0]||n.t0>trim[1]))){o.c='x';return o}
     let c=((n.m-cfg.tonic)*100)%1200;if(c<0)c+=1200;const d=Math.round(c/100)%12;let dev=c-tab[d];if(dev>600)dev-=1200;if(dev<-600)dev+=1200;
     o.pc=(d+cfg.tonic)%12;o.dev=dev;o.c=Math.abs(dev)<=th.g?'g':Math.abs(dev)<=th.y?'y':'r';return o})}
+function cfgHtml(cfg){return `<div class="row wrap"><select id="anTon" aria-label="Sävellajin perussävel">${NOTES.map((n,i)=>`<option value="${i}" ${i===cfg.tonic?'selected':''}>${n}</option>`).join('')}</select>
+      ${[['maj','Duuri'],['min','Molli']].map(([k,l])=>`<button class="chip ${cfg.mode===k?'on':''}" data-act="anMode" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="chips" style="margin-top:10px">${Object.keys(TUNL).map(k=>`<button class="chip ${cfg.tun===k?'on':''}" data-act="anTun" data-k="${k}">${TUNL[k]}</button>`).join('')}</div>`}
+function anHead(sub){return `<div class="head"><div><h1>Analyysi</h1><p class="mut">${sub}</p></div><div class="chips">${[['rec','Äänite'],['live','Reaaliaikainen']].map(([k,l])=>`<button class="chip ${AN.mode===k?'on':''}" data-act="anModeV" data-k="${k}">${l}</button>`).join('')}</div></div>`}
+/* live analysis: rolling window of pitch frames from the microphone */
+const L={on:false,frozen:false,fr:[],timer:null,src:null,an:null,buf:null,now:0};
+async function liveStart(){const st=await getMic();if(!st){liveUI();return}const a=audio();
+  if(!L.src){L.src=a.createMediaStreamSource(st);L.an=a.createAnalyser();L.an.fftSize=4096;L.src.connect(L.an);L.buf=new Float32Array(4096)}
+  L.on=true;L.frozen=false;L.fr=[];clearInterval(L.timer);L.timer=setInterval(liveTick,40);liveUI()}
+function liveStop(){clearInterval(L.timer);const was=L.on||L.src;L.on=false;L.frozen=false;
+  if(L.src){try{L.src.disconnect()}catch(e){}L.src=null;L.an=null}if(was)releaseMic()}
+function liveUI(){const b=$('#lvBtn');if(b)b.textContent=!L.on?'Käynnistä':L.frozen?'Jatka':'Pysäytä'}
+function liveTick(){if(!L.an)return;L.an.getFloatTimeDomainData(L.buf);const now=performance.now()/1000;L.now=now;
+  L.fr.push({t:now,f:detect(L.buf,ac.sampleRate)});while(L.fr.length&&L.fr[0].t<now-32)L.fr.shift();liveDraw()}
+function liveDraw(){const bar=$('#lvBar');if(!bar)return;const W=S.ui.win||20,now=L.now||0,a=now-W,cfg=S.ui.cfg,th=S.ui.thr;
+  const NM=(cfg.mode==='maj'?[5,10,3,8,1]:[2,7,0,5,10,3]).includes(cfg.tonic)?FLAT:SHARP;
+  const ns=evalNotes(notesOf({f:L.fr.map(x=>x.f),ts:L.fr.map(x=>x.t),dt:.04}),cfg,null);let tg=0,ty=0,tr=0,h='';
+  ns.forEach(n=>{if(n.c==='x')return;const x0=Math.max(n.t0,a),x1=Math.min(n.t1,now),d=x1-x0;if(d<=0)return;
+    if(n.c==='g')tg+=d;else if(n.c==='y')ty+=d;else tr+=d;
+    h+=`<i class="${n.c}" style="left:${(100*(x0-a)/W).toFixed(2)}%;width:${(100*d/W).toFixed(2)}%"></i>`});
+  bar.innerHTML=h;const tot=tg+ty+tr,pc=x=>Math.round(100*x/tot);
+  $('#lvScore').textContent=tot?pc(tg)+' %':'–';
+  $('#lvSub').textContent=tot?`puhdasta. Lähellä ${pc(ty)} %, epäpuhdasta ${pc(tr)} %.`:'puhdasta';
+  const last=ns[ns.length-1],live=last&&last.c!=='x'&&now-last.t1<.15,nw=$('#lvNow');
+  nw.textContent=live?NM[last.pc]:'–';nw.className='score '+(live?last.c:'');
+  $('#lvDev').textContent=!live?'Nykyinen sävel':last.c==='g'?'puhdas':Math.round(Math.abs(last.dev))+' senttiä '+(last.dev<0?'alavireinen':'ylävireinen')}
+function renderLive(){const th=S.ui.thr,w=S.ui.win||20;
+  $('#v-analysis').innerHTML=anHead('Soita, niin palkki näyttää viimeiset '+w+' sekuntia. Uusin ääni on oikeassa reunassa.')+`<div class="card">${cfgHtml(S.ui.cfg)}
+    <p class="lab">Näytettävä jakso</p><div class="chips">${[10,20,30].map(x=>`<button class="chip ${x===w?'on':''}" data-act="lvWin" data-k="${x}">${x} s</button>`).join('')}</div>
+    <div class="row wrap" style="align-items:flex-end;gap:36px"><div><div class="score" id="lvScore">–</div><p id="lvSub" class="mut">puhdasta</p></div>
+      <div><div class="score" id="lvNow">–</div><p id="lvDev" class="mut">Nykyinen sävel</p></div></div>
+    <div class="abar" id="lvBar" style="cursor:default"></div>
+    <p class="lab" style="margin-top:0">Vihreä: enintään ±${th.g} senttiä. Keltainen: enintään ±${th.y}. Punainen: enemmän. Harmaa: ei analysoitu (tauko, liuku tai kaksoisote).</p>
+    <button class="btn pri big" data-act="lvBtn" id="lvBtn"></button></div>`;
+  liveUI();liveDraw()}
 /* player (Web Audio, so seeking works for recorded blobs) */
 function pPos(){return P.playing?Math.min(AN.buf.duration,P.off+ac.currentTime-P.t0):P.pos}
 function pUI(){const b=$('#anPlay');if(b)b.textContent=P.playing?'Tauko':'Toista'}
@@ -677,13 +714,13 @@ function pStop(){if(P.src){const x=P.src;P.pos=pPos();P.src=null;P.playing=false
 function pPlay(from){if(!AN.buf)return;pStop();const a=audio(),x=a.createBufferSource();x.buffer=AN.buf;x.connect(a.destination);
   P.off=clamp(from,0,Math.max(0,AN.buf.duration-.05));P.t0=a.currentTime;x.start(0,P.off);
   x.onended=()=>{if(P.src===x){P.src=null;P.playing=false;P.pos=0;pUI()}};P.src=x;P.playing=true;pUI()}
-function openAn(sid,rid){pStop();P.pos=0;AN.sid=sid;AN.rid=rid;AN.buf=AN.trk=null;show('analysis')}
-function renderAnalysis(){const el=$('#v-analysis');
+function openAn(sid,rid){liveStop();AN.mode='rec';pStop();P.pos=0;AN.sid=sid;AN.rid=rid;AN.buf=AN.trk=null;show('analysis')}
+function renderAnalysis(){const el=$('#v-analysis');if(AN.mode==='live')return renderLive();
   if(!anRec()){const c=[S.active,...[...S.sessions].sort((a,b)=>b.date-a.date)].find(x=>x&&x.recs.length);
     if(c){AN.sid=c.id;AN.rid=c.recs[c.recs.length-1].id;AN.buf=AN.trk=null;P.pos=0}
-    else{el.innerHTML=`<div class="head"><h1>Analyysi</h1></div><p class="empty">Ei vielä äänityksiä. Äänitä otto Harjoitus-näkymässä ja paina sen vieressä ”Analysoi”, niin näet tässä, kuinka puhtaasti pätkä meni.</p>`;return}}
+    else{el.innerHTML=`${anHead('')}<p class="empty">Ei vielä äänityksiä. Äänitä otto Harjoitus-näkymässä ja paina sen vieressä ”Analysoi”, niin näet tässä, kuinka puhtaasti pätkä meni.</p>`;return}}
   const s=anSes();
-  el.innerHTML=`<div class="head"><div><h1>Analyysi</h1><p class="mut">${s===S.active?'Käynnissä oleva harjoitus':'Harjoitus '+new Date(s.date).toLocaleDateString('fi-FI',{weekday:'short',day:'numeric',month:'numeric'})}</p></div></div>
+  el.innerHTML=`${anHead(s===S.active?'Käynnissä oleva harjoitus':'Harjoitus '+new Date(s.date).toLocaleDateString('fi-FI',{weekday:'short',day:'numeric',month:'numeric'}))}
     <div class="an2"><div class="card" id="anMain"></div><div class="card"><h2>Harjoituksen äänitykset</h2><div id="anList"></div></div></div>`;
   renderAnList();if(AN.trk&&AN.buf)renderAnBody();else loadAn()}
 function renderAnList(){const s=anSes(),el=$('#anList');if(!s||!el)return;const ids=s.goals.map(g=>g.id);
@@ -710,9 +747,7 @@ function renderAnBody(){const s=anSes(),r=anRec(),el=$('#anMain');if(!s||!r||!el
   const rec=Object.keys(by).map(k=>({pc:+k,avg:by[k].s/by[k].w,k:by[k].k})).filter(x=>x.k>=2&&Math.abs(x.avg)>th.g).sort((a,b)=>Math.abs(b.avg)-Math.abs(a.avg)).slice(0,4);
   const dir=d=>Math.round(Math.abs(d))+' senttiä '+(d<0?'alavireinen':'ylävireinen'),X=v=>(100*v/D).toFixed(2)+'%';
   el.innerHTML=`<h2>${goal?esc(goal.t):'Ilman tavoitetta'}</h2>
-    <div class="row wrap"><select id="anTon" aria-label="Sävellajin perussävel">${NOTES.map((n,i)=>`<option value="${i}" ${i===cfg.tonic?'selected':''}>${n}</option>`).join('')}</select>
-      ${[['maj','Duuri'],['min','Molli']].map(([k,l])=>`<button class="chip ${cfg.mode===k?'on':''}" data-act="anMode" data-k="${k}">${l}</button>`).join('')}</div>
-    <div class="chips" style="margin-top:10px">${Object.keys(TUNL).map(k=>`<button class="chip ${cfg.tun===k?'on':''}" data-act="anTun" data-k="${k}">${TUNL[k]}</button>`).join('')}</div>
+    ${cfgHtml(cfg)}
     ${tot?`<div class="score">${pc(tg)} %</div><p>puhdasta. Lähellä ${pc(ty)} %, epäpuhdasta ${pc(tr)} %.</p>`:`<p class="empty">Äänitteestä ei löytynyt analysoitavia säveliä. Kokeile äänittää lähempää tai hiljaisemmassa tilassa.</p>`}
     <div class="abar" data-act="anSeek">${ns.filter(n=>n.c!=='x').map(n=>`<i class="${n.c}" style="left:${X(n.t0)};width:${X(n.t1-n.t0)}"></i>`).join('')}
       ${r.trim?`<i class="sh" style="left:0;width:${X(r.trim[0])}"></i><i class="sh" style="left:${X(r.trim[1])};right:0"></i>`:''}<b id="anHead"></b></div>
@@ -722,7 +757,7 @@ function renderAnBody(){const s=anSes(),r=anRec(),el=$('#anMain');if(!s||!r||!el
     <h2>Huomiot</h2>${fs.length?fs.map(f=>`<button class="find ${f.c}" data-act="anGo" data-k="${f.t0.toFixed(2)}"><i></i><b>${fmt(Math.floor(f.t0))}</b><span>${f.pcs.map(p=>NM[p]).join(', ')}, ${dir(f.dev)}</span></button>`).join(''):`<p class="mut">${tot?'Ei huomioita näillä rajoilla.':'–'}</p>`}
     ${rec.length?`<h2>Toistuvat poikkeamat</h2>${rec.map(x=>`<p>${NM[x.pc]} on keskimäärin ${dir(x.avg)} (${x.k} säveltä).</p>`).join('')}`:''}`;
   pUI();renderAnList()}
-function anSet(fn){const c=anCfg();fn(c);S.ui.cfg={...c};save();renderAnBody()}
+function anSet(fn){if(AN.mode==='live'){fn(S.ui.cfg);save();renderLive();return}const c=anCfg();fn(c);S.ui.cfg={...c};save();renderAnBody()}
 
 /* ---------- settings ---------- */
 const ACCENTS=[['#007AFF','Sininen'],['#34A853','Vihreä'],['#FF9500','Oranssi'],['#FF3B30','Punainen'],['#FF2D55','Pinkki'],['#AF52DE','Violetti'],['#5856D6','Indigo'],['#2AA7BF','Turkoosi'],['#636366','Grafiitti']];
@@ -745,7 +780,7 @@ function fs(on){const d=document,e=d.documentElement;if(on===undefined)on=!isFs(
 /* ---------- navigation + events ---------- */
 const RENDER={session:renderSession,routines:renderRoutines,journal:renderJournal,scores:()=>{if(!V.open)renderLib();else renderPage()},metro:renderMetro,tuner:renderTuner,settings:renderSettings,analysis:renderAnalysis};
 function show(v){$$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));$$('#rail .nav').forEach(b=>b.classList.toggle('on',b.dataset.nav===v));
-  if(v!=='scores')document.body.classList.remove('full');if(v!=='analysis')pStop();RENDER[v]();syncMetro()}
+  if(v!=='scores')document.body.classList.remove('full');if(v!=='analysis'){pStop();liveStop()}RENDER[v]();syncMetro()}
 function addGoal(inp,arr,after){const t=inp&&inp.value.trim();if(!t)return;arr.push({id:uid(),t,done:false});inp.value='';save();after()}
 document.addEventListener('click',e=>{const t=e.target;
   const nav=t.closest('[data-nav]');if(nav)return show(nav.dataset.nav);
@@ -757,6 +792,9 @@ document.addEventListener('click',e=>{const t=e.target;
   switch(act){
     case 'tap':tap();break;
     case 'an':{const ses=b.closest('.ses');openAn(ses?ses.dataset.id:S.active.id,k);break}
+    case 'anModeV':if(k===AN.mode)break;AN.mode=k;if(k==='live'){pStop();renderAnalysis();liveStart()}else{liveStop();renderAnalysis()}break;
+    case 'lvWin':S.ui.win=+k;save();renderLive();break;
+    case 'lvBtn':if(!L.on)liveStart();else if(L.frozen){L.frozen=false;L.fr=[];L.timer=setInterval(liveTick,40)}else{L.frozen=true;clearInterval(L.timer)}liveUI();break;
     case 'anSel':openAn(AN.sid,k);break;
     case 'anMode':anSet(c=>c.mode=k);break;
     case 'anTun':anSet(c=>c.tun=k);break;
