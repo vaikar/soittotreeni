@@ -761,7 +761,7 @@ document.addEventListener('click',e=>{const t=e.target;
     case 'anMode':anSet(c=>c.mode=k);break;
     case 'anTun':anSet(c=>c.tun=k);break;
     case 'anPlay':P.playing?pStop():pPlay(P.pos);break;
-    case 'anGo':pPlay(Math.max(0,+k-2));break;
+    case 'anGo':pPlay(+k);break;
     case 'anSeek':{if(!AN.buf)break;const rc=b.getBoundingClientRect();pPlay((e.clientX-rc.left)/rc.width*AN.buf.duration);break}
     case 'anT0':case 'anT1':{const r=anRec();if(!r||!AN.buf)break;const p=pPos(),tr=r.trim?r.trim.slice():[0,AN.buf.duration];tr[act==='anT0'?0:1]=p;
       if(tr[1]-tr[0]<.3){toast('Alun pitää olla ennen loppua. Siirrä toistokohtaa ja yritä uudelleen.');break}r.trim=tr;save();renderAnBody();break}
