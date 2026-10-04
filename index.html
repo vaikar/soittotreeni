@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sellotreeni</title>
+<style>
+:root{
+  --bg:#F2F2F7;--surface:#FFFFFF;--sunk:#E9E9EE;--ink:#1C1C1E;--mut:#6E6E73;--line:#D1D1D6;
+  --pri:#007AFF;--pri-ink:#FFFFFF;--amb:var(--pri);--ok:#248A3D;--bad:#FF3B30;
+  --rail:#FAFAFC;--rail-ink:#1C1C1E;
+  --disp:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#F2F2F7;--mut:#98989D;--line:#38383A;--ok:#30D158;--bad:#FF453A;--rail:#1C1C1E;--rail-ink:#F2F2F7}}
+:root[data-theme="dark"]{--bg:#000000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#F2F2F7;--mut:#98989D;--line:#38383A;--ok:#30D158;--bad:#FF453A;--rail:#1C1C1E;--rail-ink:#F2F2F7}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--body);-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--amb);outline-offset:2px}
+h1{font:700 30px/1.1 var(--disp);margin:0 0 4px;letter-spacing:-.01em}
+h2{font:700 17px/1.2 var(--disp);margin:22px 0 10px}
+h2:first-child{margin-top:0}
+p{margin:0 0 10px}
+.mut{color:var(--mut)}
+#app{display:flex;height:100%}
+#rail{flex:0 0 96px;background:var(--rail);color:var(--rail-ink);display:flex;flex-direction:column;align-items:stretch;padding:14px 8px;gap:4px}
+.brand{font:700 15px var(--disp);text-align:center;padding:4px 0 14px}
+#rail .nav{background:none;border:0;color:inherit;border-radius:14px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12.5px;font-weight:500;opacity:.75;min-height:60px}
+#rail .nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#rail .nav.on{background:rgba(255,255,255,.14);opacity:1}
+.mini{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:10px;border-top:1px solid rgba(255,255,255,.16)}
+.mini .mplay{width:52px;height:52px;border-radius:50%;border:0;background:var(--amb);color:#14201D;font-size:18px;font-weight:700}
+.mini span{font:700 15px var(--disp)}
+main{flex:1;min-width:0;height:100%}
+.view{display:none;height:100%;overflow:auto;padding:26px 28px 40px}
+.view.on{display:block}
+body.full #rail{display:none}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px}
+.row{display:flex;align-items:center;gap:10px}
+.row.wrap{flex-wrap:wrap}
+.btn{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.btn.pri{background:var(--pri);color:var(--pri-ink);border-color:var(--pri)}
+.btn.ghost{border-color:transparent;background:none;color:var(--mut)}
+.btn.big{min-height:54px;padding:0 22px;font-size:17px}
+.btn.on{background:var(--pri);color:var(--pri-ink);border-color:var(--pri)}
+.btn[data-sure]{background:var(--bad);color:#fff;border-color:var(--bad)}
+.rnd{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:26px;line-height:1;flex:none}
+.rnd.sm{width:40px;height:40px;font-size:20px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:42px;padding:0 14px;border-radius:21px;border:1px solid var(--line);background:var(--surface);font-weight:500}
+.chip.on{background:var(--pri);color:var(--pri-ink);border-color:var(--pri)}
+input[type=text],input[type=number],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-height:44px}
+input[type=number]{width:76px}
+textarea{width:100%;min-height:120px;resize:vertical}
+input[type=range]{width:100%;accent-color:var(--pri);height:34px}
+input[type=checkbox]{width:22px;height:22px;accent-color:var(--pri);flex:none}
+.chk{display:flex;align-items:center;gap:10px;margin:12px 0;min-height:36px}
+.empty{color:var(--mut);padding:30px 0;max-width:56ch}
+.pill{background:var(--sunk);border-radius:20px;padding:5px 12px;font-weight:600;white-space:nowrap}
+/* metronome */
+.tempo{text-align:center}
+.dots{display:flex;justify-content:center;gap:12px;min-height:26px;margin-bottom:8px}
+.dots i{width:22px;height:22px;border-radius:50%;background:var(--sunk);border:1px solid var(--line)}
+.dots i.first{border-color:var(--amb)}
+.dots i.on{background:var(--pri);border-color:var(--pri)}
+.dots i.first.on{background:var(--amb);border-color:var(--amb)}
+.bpmrow{display:flex;align-items:center;justify-content:center;gap:22px}
+.bpm{font:700 clamp(84px,14vw,148px)/.95 var(--disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums;min-width:2.2ch}
+.tempo .row{justify-content:center;margin-top:14px;flex-wrap:wrap}
+.beatdot{display:inline-block;width:14px;height:14px;border-radius:50%;background:var(--line)}
+.beatdot.on{background:var(--amb)}
+/* tuner */
+.tun{text-align:center}
+.strs{display:flex;justify-content:center;gap:10px}
+.strs span{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font:700 18px var(--disp);color:var(--mut)}
+.strs span.on{background:var(--pri);color:var(--pri-ink);border-color:var(--pri)}
+.note{font:700 120px/1.1 var(--disp);letter-spacing:-.03em;margin-top:8px}
+.note sub{font-size:34px;color:var(--mut);margin-left:4px}
+.note.ok{color:var(--ok)}
+.gauge{position:relative;height:46px;margin:6px auto 10px;max-width:440px;border-radius:10px;background:
+  linear-gradient(var(--ok),var(--ok)) 50% 0/10% 100% no-repeat,var(--sunk);opacity:.95}
+.gauge::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--ink);opacity:.35}
+#needle{position:absolute;top:-6px;bottom:-6px;width:6px;margin-left:-3px;border-radius:3px;background:var(--ink);left:50%;transition:left .09s linear;opacity:.25}
+#needle.live{opacity:1}
+/* routines */
+.rt{margin-bottom:16px}
+.rt .ttl{flex:1;min-width:120px;font:700 19px var(--disp)}
+.ex{display:grid;grid-template-columns:1fr 84px 84px 44px 44px;gap:8px;align-items:center;margin-top:8px}
+.ex input{width:100%}
+.exh{font-size:13px;color:var(--mut);margin-top:14px}
+.ico{width:44px;height:44px;border-radius:10px;border:0;background:none;color:var(--mut);font-size:20px}
+/* session */
+.clock{font:700 56px/1 var(--disp);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.clock.amb{color:var(--amb);font-size:84px;margin:6px 0 12px}
+.exname{font:700 28px/1.15 var(--disp)}
+.bar{height:10px;border-radius:5px;background:var(--sunk);overflow:hidden;margin-bottom:16px}
+.bar i{display:block;height:100%;width:0;background:var(--amb)}
+.mline{margin:16px 0 4px;flex-wrap:wrap}
+.steps{list-style:none;margin:16px 0 0;padding:0;border-top:1px solid var(--line)}
+.steps li{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);color:var(--mut)}
+.steps li.cur{color:var(--ink);font-weight:600}
+.steps li.past{text-decoration:line-through}
+.goal{display:flex;align-items:center;gap:10px;padding:6px 0}
+.goal span{flex:1}
+.goal input:checked+span{color:var(--mut);text-decoration:line-through}
+.addrow{display:flex;gap:8px;margin-top:8px}
+.addrow input{flex:1;min-width:0}
+.recs>div{display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap}
+audio{height:40px;max-width:100%}
+.recdot{width:12px;height:12px;border-radius:50%;background:var(--bad);animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.recdot{animation:none}#needle{transition:none}}
+/* journal */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.stats b{display:block;font:700 34px/1.1 var(--disp)}
+.chart{display:flex;align-items:flex-end;gap:6px;height:130px}
+.chart div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;font-size:12px;color:var(--mut)}
+.chart i{display:block;width:100%;background:var(--pri);border-radius:5px 5px 0 0;min-height:2px}
+.chart i.z{background:var(--line)}
+details.ses{margin-bottom:10px;padding:0}
+details.ses summary{padding:14px 18px;cursor:pointer;display:flex;gap:18px;flex-wrap:wrap;align-items:center;list-style:none}
+details.ses summary b{font-family:var(--disp)}
+details.ses .in{padding:0 18px 16px}
+.notes{white-space:pre-wrap;background:var(--sunk);border-radius:10px;padding:10px 12px}
+/* scores */
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.sc{display:flex;flex-direction:column;gap:10px}
+.sc .open{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:4px;min-height:90px}
+.sc .open b{font:700 19px/1.2 var(--disp)}
+#v-scores.viewing{padding:0}
+#viewer{display:none;flex-direction:column;height:100%}
+.viewing #viewer{display:flex}
+.viewing #lib{display:none}
+.tb{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tb .btn{min-height:42px;padding:0 12px}
+.tb .sep{width:1px;height:28px;background:var(--line);margin:0 2px}
+.tb .ttl{font:700 16px var(--disp);max-width:22ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw{width:34px;height:34px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line);padding:0}
+.sw.on{box-shadow:0 0 0 3px var(--ink)}
+#stage{flex:1;overflow:auto;padding:16px;background:var(--sunk);text-align:center}
+#pg{position:relative;display:inline-block;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.25);line-height:0}
+#pg canvas{position:absolute;inset:0;width:100%;height:100%}
+#blur{position:absolute;inset:0;display:none;background:rgba(255,255,255,.6);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+#hit{position:absolute;inset:0;touch-action:none}
+#hit.hand{pointer-events:none}
+#frs{position:absolute;inset:0;pointer-events:none}
+.fr{position:absolute;border:2px solid var(--pri);border-radius:4px}
+.fr button{display:none;position:absolute;right:-14px;top:-14px;width:32px;height:32px;border-radius:50%;border:0;background:var(--pri);color:#fff;font-size:18px;line-height:1;pointer-events:auto}
+.focusing .fr button{display:block}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;max-width:90vw;display:none;z-index:9}
+@media (max-width:720px){
+  #app{flex-direction:column-reverse}
+  #rail{flex:none;flex-direction:row;padding:6px;overflow-x:auto}
+  .brand{display:none}
+  #rail .nav{flex:1;min-width:62px;font-size:11px}
+  .mini{margin:0;border:0;padding:0 6px;flex-direction:row}
+  main{height:auto;flex:1;min-height:0}
+  .view{padding:18px 14px 30px}
+  .ex{grid-template-columns:1fr 64px 64px 40px 40px}
+  .note{font-size:92px}
+}
+
+/* minimal look */
+#rail{border-right:1px solid var(--line)}
+#rail .nav{opacity:1;color:var(--mut)}
+#rail .nav.on{background:color-mix(in srgb,var(--pri) 13%,transparent);color:var(--pri)}
+.mini{border-top-color:var(--line)}
+.mini .mplay{background:var(--pri);color:var(--pri-ink)}
+.card,.stats div{border:0}
+.btn,.chip,.rnd{border-color:transparent;background:var(--sunk)}
+.btn.pri,.btn.on,.chip.on{background:var(--pri);color:var(--pri-ink)}
+.btn.ghost{background:none}
+.btn[data-sure]{background:var(--bad);color:#fff}
+.card .btn:not(.pri):not(.on):not(.ghost):not([data-sure]),.card .chip:not(.on),.card .rnd{background:var(--bg)}
+input[type=text],input[type=number],select,textarea{border-color:transparent;background:var(--sunk)}
+.card input[type=text],.card input[type=number],.card select,.card textarea{background:var(--bg)}
+.dots i{border:0}
+.dots i.first{transform:scale(1.3)}
+.dots i.on,.dots i.first.on{background:var(--pri)}
+.tb{border-bottom-color:var(--line)}
+h1{letter-spacing:-.02em}
+.swl{display:flex;flex-wrap:wrap;gap:14px}
+.swl .sw{width:46px;height:46px}
+.swl .sw.on{box-shadow:0 0 0 3px var(--ink)}
+@media (max-width:720px){#rail{border-right:0;border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div id="app">
+<nav id="rail" aria-label="Päävalikko">
+  <div class="brand">Sellotreeni</div>
+  <button class="nav" data-nav="session"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z"/></svg>Harjoitus</button>
+  <button class="nav" data-nav="metro"><svg viewBox="0 0 24 24"><path d="M9 3h6l4 18H5z"/><path d="M12 15l5-9"/></svg>Metronomi</button>
+  <button class="nav" data-nav="tuner"><svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 0116 0"/><path d="M12 16l3-6"/><path d="M3 20h18"/></svg>Viritin</button>
+  <button class="nav" data-nav="routines"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>Rutiinit</button>
+  <button class="nav" data-nav="scores"><svg viewBox="0 0 24 24"><path d="M9 18V5l10-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>Nuotit</button>
+  <button class="nav" data-nav="journal"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Päiväkirja</button>
+  <button class="nav" data-nav="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Asetukset</button>
+  <div class="mini"><button class="mplay" data-on="▶" data-off="■" aria-label="Metronomi päälle tai pois">▶</button><span><span class="bpmv">72</span></span></div>
+</nav>
+<main>
+<section id="v-session" class="view"></section>
+
+<section id="v-metro" class="view">
+  <div class="head"><h1>Metronomi</h1></div>
+  <div class="grid2">
+    <div class="card tempo">
+      <div id="dots" class="dots"></div>
+      <div class="bpmrow">
+        <button class="rnd bpmd" data-d="-1" aria-label="Hitaammin">−</button>
+        <div><div class="bpm bpmv">72</div><div id="tname" class="mut">Adagio</div></div>
+        <button class="rnd bpmd" data-d="1" aria-label="Nopeammin">+</button>
+      </div>
+      <input id="bpmR" type="range" min="30" max="240" aria-label="Tempo">
+      <div class="row">
+        <button class="btn pri big mplay" data-on="Käynnistä" data-off="Pysäytä">Käynnistä</button>
+        <button class="btn big" data-act="tap">Napauta tempo</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Tahtilaji</h2><div id="sigs" class="chips"></div>
+      <h2>Tempon yksikkö</h2><p class="mut">Mitä nuottia tempon luku tarkoittaa. Metronomi lyö tämän nuotin tahdissa.</p><div id="units" class="chips"></div>
+      <h2>Iskun jako</h2><div id="subs" class="chips"></div>
+      <label class="chk"><input type="checkbox" id="acc"> Korosta tahdin ensimmäinen isku</label>
+      <h2>Tempon nosto</h2>
+      <label class="chk"><input type="checkbox" id="rampOn"> Nosta tempoa automaattisesti</label>
+      <div class="row wrap">
+        <span>+</span><input id="rStep" type="number" min="1" max="20" inputmode="numeric" aria-label="Nosto bpm">
+        <span>bpm joka</span><input id="rBars" type="number" min="1" max="32" inputmode="numeric" aria-label="Tahtien määrä">
+        <span>tahdin jälkeen, kunnes</span><input id="rTarget" type="number" min="30" max="240" inputmode="numeric" aria-label="Tavoitetempo"><span>bpm</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="v-tuner" class="view">
+  <div class="head"><h1>Viritin</h1></div>
+  <div class="grid2">
+    <div class="card tun">
+      <div class="strs" id="strs"><span data-m="36">C</span><span data-m="43">G</span><span data-m="50">D</span><span data-m="57">A</span></div>
+      <div class="note" id="tNoteBox"><span id="tNote">–</span><sub id="tOct"></sub></div>
+      <div class="gauge"><div id="needle"></div></div>
+      <p class="mut" id="tInfo">Käynnistä viritin ja soita kieli.</p>
+      <div class="row wrap" style="justify-content:center">
+        <button class="btn pri big" data-act="tun" id="tunBtn">Käynnistä viritin</button>
+        <label class="row">A = <input id="a4" type="number" min="415" max="446" inputmode="numeric"> Hz</label>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Drone</h2>
+      <p class="mut">Jatkuva pohjasävel, jota vasten voit kuunnella asteikkojen ja intervallien puhtautta.</p>
+      <div id="dNotes" class="chips"></div>
+      <h2>Oktaavi</h2><div id="dOcts" class="chips"></div>
+      <label class="chk"><input type="checkbox" id="dFifth"> Lisää kvintti</label>
+      <label>Voimakkuus<input type="range" id="dVol" min="0" max="100"></label>
+      <button class="btn pri big" data-act="drone" id="dBtn" style="margin-top:12px">Soita drone</button>
+    </div>
+  </div>
+</section>
+
+<section id="v-routines" class="view"></section>
+
+<section id="v-scores" class="view">
+  <div id="lib"></div>
+  <div id="viewer">
+    <div class="tb">
+      <button class="btn" data-act="back">Kirjasto</button>
+      <span class="ttl" id="scT"></span>
+      <span class="sep"></span>
+      <button class="btn" data-act="pPrev" aria-label="Edellinen sivu">‹</button><span id="pgN">1 / 1</span><button class="btn" data-act="pNext" aria-label="Seuraava sivu">›</button>
+      <span class="sep"></span>
+      <button class="btn tool on" data-act="tool" data-t="hand">Selaa</button>
+      <button class="btn tool" data-act="tool" data-t="pen">Kynä</button>
+      <button class="btn tool" data-act="tool" data-t="hl">Korostus</button>
+      <button class="btn tool" data-act="tool" data-t="erase">Kumi</button>
+      <button class="btn tool" data-act="tool" data-t="focus">Focus</button>
+      <span id="sws" class="row"></span>
+      <span class="sep"></span>
+      <button class="btn" data-act="undo">Kumoa</button>
+      <button class="btn" data-act="clr">Tyhjennä merkinnät</button>
+      <button class="btn" data-act="fclr">Poista focus</button>
+      <span class="sep"></span>
+      <button class="btn" data-act="fit" id="fitB">Koko sivu</button>
+      <button class="btn" data-act="full" id="fullB">Koko näyttö</button>
+      <span class="sep"></span>
+      <button class="btn mplay" data-on="▶ Metronomi" data-off="■ Metronomi">▶ Metronomi</button>
+      <button class="rnd sm bpmd" data-d="-2" aria-label="Hitaammin">−</button><b class="bpmv">72</b><button class="rnd sm bpmd" data-d="2" aria-label="Nopeammin">+</button>
+      <i class="beatdot"></i>
+    </div>
+    <div id="stage"><div id="pg"><canvas id="pc"></canvas><canvas id="ink"></canvas><div id="blur"></div><div id="hit" class="hand"></div><div id="frs"></div></div></div>
+  </div>
+</section>
+
+<section id="v-journal" class="view"></section>
+<section id="v-settings" class="view"></section>
+</main>
+</div>
+<div id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const dayKey=d=>{d=new Date(d);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>t.style.display='none',3800)}
+function sure(btn,fn){if(btn.dataset.sure){fn();return}const old=btn.textContent;btn.dataset.sure=1;btn.textContent='Vahvista';setTimeout(()=>{if(btn.isConnected){delete btn.dataset.sure;btn.textContent=old}},3000)}
+
+/* ---------- state (localStorage + IndexedDB; works unchanged in an Android WebView) ---------- */
+const KEY='sellotreeni.v1';
+const DEF={a4:440,metro:{bpm:72,sig:'4/4',sub:'q',accent:true,ramp:{on:false,step:4,bars:4,target:120}},
+  drone:{n:9,o:2,fifth:false,vol:60},
+  routines:[{id:'r1',name:'Peruslämmittely',ex:[
+    {id:'e1',name:'Avoimet kielet, pitkät jouset',min:2,bpm:60},
+    {id:'e2',name:'A-duuriasteikko, 3 oktaavia',min:3,bpm:72},
+    {id:'e3',name:'A-duurin murtosoinnut',min:2,bpm:72},
+    {id:'e4',name:'Jousenvaihdot kielten välillä',min:3,bpm:80}]}],
+  ui:{accent:'#007AFF',theme:'auto'},longGoals:[],sessions:[],scores:[],draft:{goals:[],notes:'',rid:'r1'},active:null};
+let S;try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){S=JSON.parse(JSON.stringify(DEF))}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let saveT;function saveSoon(){clearTimeout(saveT);saveT=setTimeout(save,400)}
+const store={mem:new Map(),db:null,
+  open(){return new Promise((res,rej)=>{if(this.db)return res(this.db);let r;try{r=indexedDB.open('sellotreeni',1)}catch(e){return rej(e)}
+    r.onupgradeneeded=()=>r.result.createObjectStore('blobs');r.onsuccess=()=>{this.db=r.result;res(this.db)};r.onerror=()=>rej(r.error)})},
+  async put(k,v){try{const d=await this.open();await new Promise((res,rej)=>{const t=d.transaction('blobs','readwrite');t.objectStore('blobs').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){this.mem.set(k,v)}},
+  async get(k){if(this.mem.has(k))return this.mem.get(k);try{const d=await this.open();return await new Promise((res,rej)=>{const q=d.transaction('blobs').objectStore('blobs').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}catch(e){return null}},
+  async del(k){this.mem.delete(k);try{const d=await this.open();d.transaction('blobs','readwrite').objectStore('blobs').delete(k)}catch(e){}}};
+
+/* ---------- audio ---------- */
+let ac=null;
+function audio(){if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();return ac}
+let mic=null;
+async function getMic(){if(mic&&mic.active)return mic;
+  try{mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});return mic}
+  catch(e){toast('Mikrofonia ei saatu käyttöön. Salli mikrofonin käyttö ja yritä uudelleen.');return null}}
+function releaseMic(){if(T.on||R.mr||!mic)return;mic.getTracks().forEach(t=>t.stop());mic=null;if(T.src){try{T.src.disconnect()}catch(e){}T.src=null;T.an=null}}
+
+/* ---------- metronome ---------- */
+/* bar length (len) and unit length (n) are counted in eighth notes */
+const SIGS={'2/4':{len:4,u:'q'},'3/4':{len:6,u:'q'},'4/4':{len:8,u:'q'},'5/4':{len:10,u:'q'},'6/8':{len:6,u:'dq',acc:[3]},'7/8':{len:7,u:'e',acc:[2,4]}};
+const UNITS={h:{l:'Puolinuotti',s:'Puolinuotti',n:4},q:{l:'Neljäsosa ♩',s:'♩',n:2},e:{l:'Kahdeksasosa ♪',s:'♪',n:1},dq:{l:'Pisteellinen neljäsosa ♩.',s:'♩.',n:3}};
+const unitOf=()=>UNITS[S.metro.unit]||UNITS.q;
+const SUBS={q:{l:'Vain iskut',p:[0]},e:{l:'Jako kahteen',p:[0,.5]},t:{l:'Jako kolmeen (trioli)',p:[0,1/3,2/3]},s:{l:'Jako neljään',p:[0,.25,.5,.75]},sw:{l:'Swing',p:[0,2/3]},dot:{l:'Pisteellinen',p:[0,.75]}};
+const M={on:false,next:0,beat:0,bar:0,timer:null,q:[]};
+function click(t,lvl){const o=ac.createOscillator(),g=ac.createGain();
+  o.frequency.value=lvl===2?1568:lvl===1.5?1319:lvl===1?1047:784;
+  g.gain.setValueAtTime(lvl===0?.22:lvl===1?.5:lvl===2?.75:.6,t);g.gain.exponentialRampToValueAtTime(.001,t+.05);
+  o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.06)}
+function sched(){const m=S.metro,sig=SIGS[m.sig]||SIGS['4/4'],un=unitOf(),nb=Math.ceil(sig.len/un.n);
+  while(M.next<ac.currentTime+.12){if(M.beat>=nb)M.beat=0;
+    const e8=60/(m.bpm*un.n),pos=M.beat*un.n,len=Math.min(un.n,sig.len-pos),spb=un.n*e8;
+    const lvl=!m.accent?1:M.beat===0?2:(un.n===1&&(sig.acc||[]).includes(pos))?1.5:1;
+    SUBS[m.sub].p.forEach((f,i)=>{if(f*un.n<len-1e-6)click(M.next+f*spb,i?0:lvl)});
+    M.q.push({t:M.next,beat:M.beat});M.next+=len*e8;M.beat++;
+    if(M.beat>=nb){M.beat=0;M.bar++;const r=m.ramp;
+      if(r.on&&M.bar%Math.max(1,r.bars)===0&&m.bpm<r.target)setBpm(Math.min(r.target,m.bpm+r.step))}}}
+function metro(on){if(on===M.on)return;M.on=on;
+  if(on){audio();M.next=ac.currentTime+.08;M.beat=0;M.bar=0;M.q=[];sched();M.timer=setInterval(sched,25)}
+  else{clearInterval(M.timer);$$('#dots i').forEach(d=>d.classList.remove('on'))}
+  syncMetro()}
+function syncMetro(){$$('.mplay').forEach(b=>b.textContent=M.on?b.dataset.off:b.dataset.on);$$('.bpmv').forEach(e=>e.textContent=S.metro.bpm)}
+function setBpm(v){v=clamp(Math.round(v)||72,30,240);S.metro.bpm=v;$('#bpmR').value=v;
+  $('#tname').textContent=unitOf().s+' = '+v+', '+(v<60?'Largo':v<76?'Adagio':v<108?'Andante':v<120?'Moderato':v<168?'Allegro':'Presto');
+  if(V.sc&&V.open)V.sc.bpm=v;syncMetro();saveSoon()}
+function frame(){if(M.on&&ac){let b=null;while(M.q.length&&M.q[0].t<=ac.currentTime)b=M.q.shift();
+    if(b){$$('#dots i').forEach((d,i)=>d.classList.toggle('on',i===b.beat));
+      $$('.beatdot').forEach(d=>{d.classList.add('on');setTimeout(()=>d.classList.remove('on'),90)})}}
+  requestAnimationFrame(frame)}
+function renderMetro(){const m=S.metro;
+  $('#sigs').innerHTML=Object.keys(SIGS).map(k=>`<button class="chip ${k===m.sig?'on':''}" data-act="sig" data-k="${k}">${k}</button>`).join('');
+  $('#subs').innerHTML=Object.keys(SUBS).map(k=>`<button class="chip ${k===m.sub?'on':''}" data-act="sub" data-k="${k}">${SUBS[k].l}</button>`).join('');
+  $('#units').innerHTML=Object.keys(UNITS).map(k=>`<button class="chip ${UNITS[k]===unitOf()?'on':''}" data-act="unit" data-k="${k}">${UNITS[k].l}</button>`).join('');
+  $('#dots').innerHTML=Array.from({length:Math.ceil(SIGS[m.sig].len/unitOf().n)},(_,i)=>`<i class="${i===0?'first':''}"></i>`).join('');
+  $('#acc').checked=m.accent;$('#rampOn').checked=m.ramp.on;$('#rStep').value=m.ramp.step;$('#rBars').value=m.ramp.bars;$('#rTarget').value=m.ramp.target;setBpm(m.bpm)}
+let taps=[];
+function tap(){const n=performance.now();if(taps.length&&n-taps[taps.length-1]>2000)taps=[];taps.push(n);if(taps.length>5)taps.shift();
+  if(taps.length>1)setBpm(60000/((taps[taps.length-1]-taps[0])/(taps.length-1)))}
+
+/* ---------- tuner + drone ---------- */
+const NOTES=['C','Cis','D','Es','E','F','Fis','G','As','A','B','H'];
+const T={on:false,an:null,src:null,buf:null,hist:[],miss:0};
+function detect(buf,sr){const n=buf.length>>1,b=new Float32Array(n);let e=0;
+  for(let i=0;i<n;i++){b[i]=(buf[2*i]+buf[2*i+1])/2;e+=b[i]*b[i]}
+  if(Math.sqrt(e/n)<.006)return -1;
+  sr/=2;const maxL=Math.min(Math.floor(sr/58),(n>>1)-2),W=n-maxL-2,c=new Float32Array(maxL+2);
+  for(let l=0;l<=maxL+1;l++){let s=0;for(let i=0;i<W;i++)s+=b[i]*b[i+l];c[l]=s}
+  let l=1;while(l<maxL&&c[l]>c[l+1])l++;
+  let g=0;for(let k=l;k<=maxL;k++)if(c[k]>g)g=c[k];
+  if(g<.4*c[0])return -1;
+  for(let k=Math.max(l,2);k<=maxL;k++)if(c[k]>.9*g&&c[k]>=c[k-1]&&c[k]>=c[k+1]){
+    const a=c[k-1],m=c[k],z=c[k+1],d=a-2*m+z;return sr/(k+(d?(a-z)/(2*d):0))}
+  return -1}
+async function tunerToggle(){
+  if(T.on){T.on=false;$('#tunBtn').textContent='Käynnistä viritin';$('#needle').classList.remove('live');releaseMic();return}
+  const st=await getMic();if(!st)return;const a=audio();
+  if(!T.src){T.src=a.createMediaStreamSource(st);T.an=a.createAnalyser();T.an.fftSize=4096;T.src.connect(T.an);T.buf=new Float32Array(4096)}
+  T.on=true;T.hist=[];$('#tunBtn').textContent='Pysäytä viritin';tunerLoop()}
+function tunerLoop(){if(!T.on||!T.an)return;T.an.getFloatTimeDomainData(T.buf);const f=detect(T.buf,ac.sampleRate);
+  if(f<0){if(++T.miss>8){$('#needle').classList.remove('live');$('#tNoteBox').classList.remove('ok')}}
+  else{T.miss=0;T.hist.push(f);if(T.hist.length>5)T.hist.shift();
+    const med=[...T.hist].sort((x,y)=>x-y)[T.hist.length>>1];
+    const nn=12*Math.log2(med/S.a4)+69,mi=Math.round(nn),cents=(nn-mi)*100;
+    $('#tNote').textContent=NOTES[((mi%12)+12)%12];$('#tOct').textContent=Math.floor(mi/12)-1;
+    const nd=$('#needle');nd.classList.add('live');nd.style.left=clamp(50+cents,2,98)+'%';
+    $('#tNoteBox').classList.toggle('ok',Math.abs(cents)<=5);
+    $('#tInfo').textContent=med.toFixed(1)+' Hz, '+(Math.abs(cents)<=5?'vireessä':(cents>0?'+':'−')+Math.abs(cents).toFixed(0)+' senttiä – '+(cents>0?'liian korkea':'liian matala'));
+    $$('#strs span').forEach(s=>s.classList.toggle('on',+s.dataset.m===mi))}
+  setTimeout(tunerLoop,70)}
+let D=null;
+function droneFreq(){return S.a4*Math.pow(2,(12*(S.drone.o+1)+S.drone.n-69)/12)}
+function droneTune(){if(!D)return;D.os.forEach(o=>{try{o.stop()}catch(e){}});D.os=[];const f=droneFreq();
+  (S.drone.fifth?[f,f*1.5]:[f]).forEach(fr=>[['sawtooth',.22],['sine',.5]].forEach(([ty,gv])=>{
+    const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.value=fr;g.gain.value=gv;o.connect(g);g.connect(D.lp);o.start();D.os.push(o)}))}
+function droneToggle(){
+  if(D){const d=D;D=null;d.out.gain.setTargetAtTime(0,ac.currentTime,.08);setTimeout(()=>d.os.forEach(o=>{try{o.stop()}catch(e){}}),500)}
+  else{const a=audio(),out=a.createGain(),lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1400;
+    out.gain.value=0;out.gain.setTargetAtTime(S.drone.vol/100*.5,a.currentTime,.15);lp.connect(out);out.connect(a.destination);D={out,lp,os:[]};droneTune()}
+  $('#dBtn').textContent=D?'Pysäytä drone':'Soita drone'}
+function renderTuner(){const d=S.drone;$('#a4').value=S.a4;$('#dFifth').checked=d.fifth;$('#dVol').value=d.vol;
+  $('#dNotes').innerHTML=NOTES.map((n,i)=>`<button class="chip ${i===d.n?'on':''}" data-act="dn" data-k="${i}">${n}</button>`).join('');
+  $('#dOcts').innerHTML=[1,2,3,4].map(o=>`<button class="chip ${o===d.o?'on':''}" data-act="do" data-k="${o}">${o}</button>`).join('')}
+
+/* ---------- routines ---------- */
+const rt=id=>S.routines.find(r=>r.id===id);
+const total=r=>Math.round(r.ex.reduce((a,e)=>a+(+e.min||0),0)*10)/10;
+function renderRoutines(){
+  $('#v-routines').innerHTML=`<div class="head"><div><h1>Lämmittelyrutiinit</h1><p class="mut">Rutiinin kesto on sen harjoitusten yhteiskesto.</p></div><button class="btn pri" data-act="rAdd">Uusi rutiini</button></div>`+
+  (S.routines.length?S.routines.map(r=>`<div class="card rt" data-id="${r.id}">
+    <div class="row wrap"><input type="text" class="ttl" data-f="name" value="${esc(r.name)}" aria-label="Rutiinin nimi"><span class="pill"><span class="tot">${total(r)}</span> min</span>
+      <button class="btn pri" data-act="rStart">Aloita harjoitus</button><button class="btn ghost" data-act="rDel">Poista</button></div>
+    <div class="ex exh"><span>Harjoitus</span><span>Kesto (min)</span><span>Tempo (bpm)</span><span></span><span></span></div>
+    ${r.ex.map(e=>`<div class="ex" data-ex="${e.id}"><input type="text" data-f="name" value="${esc(e.name)}" aria-label="Harjoituksen nimi">
+      <input type="number" data-f="min" min="0.5" step="0.5" value="${e.min}" inputmode="decimal" aria-label="Kesto minuutteina">
+      <input type="number" data-f="bpm" min="30" max="240" value="${e.bpm||''}" placeholder="–" inputmode="numeric" aria-label="Tempo">
+      <button class="ico" data-act="eUp" aria-label="Siirrä ylemmäs">↑</button><button class="ico" data-act="eDel" aria-label="Poista harjoitus">×</button></div>`).join('')}
+    <button class="btn" data-act="eAdd" style="margin-top:12px">Lisää harjoitus</button></div>`).join('')
+  :`<p class="empty">Ei rutiineja vielä. Luo ensimmäinen ja lisää siihen harjoitukset, esimerkiksi asteikko ja jousiharjoitus.</p>`)}
+
+/* ---------- guided session ---------- */
+const RUN={paused:true,last:0,n:0};
+const R={mr:null,chunks:[],t0:0};
+const curGoals=()=>(S.active||S.draft).goals;
+function metroLine(){return `<div class="row mline"><button class="btn mplay" data-on="Metronomi päälle" data-off="Pysäytä metronomi"></button>
+  <button class="rnd sm bpmd" data-d="-2" aria-label="Hitaammin">−</button><b><span class="bpmv"></span> bpm</b><button class="rnd sm bpmd" data-d="2" aria-label="Nopeammin">+</button><i class="beatdot"></i></div>`}
+function renderSession(){const el=$('#v-session'),A=S.active;
+  const today=new Date().toLocaleDateString('fi-FI',{weekday:'long',day:'numeric',month:'long'});
+  const right=`<h2>Muistiinpanot</h2><textarea id="sNotes" placeholder="Mihin keskityt tänään? Mitä opettaja pyysi harjoittelemaan?">${esc((A||S.draft).notes)}</textarea>`;
+  const goals=`<h2>Tavoitteet tälle kerralle</h2><div id="sGoals"></div><div class="addrow"><input type="text" id="gNew" placeholder="Esim. tahdit 17–24 puhtaasti tempossa 60"><button class="btn" data-act="gAdd">Lisää</button></div>`;
+  if(!A){const open=S.longGoals.filter(g=>!g.done);
+    el.innerHTML=`<div class="head"><div><h1>Tämän päivän harjoitus</h1><p class="mut">${today}</p></div><button class="btn pri big" data-act="sStart">Aloita harjoitus</button></div>
+    <div class="grid2"><div class="card">${goals}
+      <h2>Pitkän ajan tavoitteet</h2>${open.length?open.map(g=>`<div class="goal"><span>${esc(g.t)}</span></div>`).join(''):`<p class="mut">Ei vielä pitkän ajan tavoitteita. Lisää ne Päiväkirja-näkymässä.</p>`}</div>
+    <div class="card"><h2>Lämmittely</h2><select id="sRt" aria-label="Lämmittelyrutiini"><option value="">Ei lämmittelyä</option>${S.routines.map(r=>`<option value="${r.id}" ${r.id===S.draft.rid?'selected':''}>${esc(r.name)} (${total(r)} min)</option>`).join('')}</select>
+      <div id="sPrev"></div>${right}</div></div>`;
+    renderPrev()}
+  else{el.innerHTML=`<div class="head"><div><h1>Harjoitus käynnissä</h1><div class="clock" id="sTot">0:00</div></div>
+      <div class="row"><button class="btn" data-act="sPause" id="sPauseB">Tauko</button><button class="btn pri" data-act="sEnd">Lopeta ja tallenna</button></div></div>
+    <div class="grid2"><div class="card" id="sRoutine"></div><div class="card">${goals}${right}
+      <h2>Äänitykset</h2><div id="sRecs" class="recs"></div></div></div>`;
+    renderStep();renderRecs()}
+  renderGoals();tickUI()}
+function renderPrev(){const r=rt(S.draft.rid),p=$('#sPrev');if(!p)return;
+  p.innerHTML=r?`<ul class="steps">${r.ex.map(e=>`<li><span>${esc(e.name)}</span><span>${e.min} min${e.bpm?', '+e.bpm+' bpm':''}</span></li>`).join('')}</ul>`:''}
+function renderGoals(){const g=$('#sGoals');if(!g)return;const gs=curGoals();
+  g.innerHTML=gs.length?gs.map((x,i)=>`<label class="goal"><input type="checkbox" data-gi="${i}" ${x.done?'checked':''}><span>${esc(x.t)}</span><button class="ico" data-act="gDel" data-gi="${i}" aria-label="Poista tavoite">×</button></label>`).join(''):`<p class="mut">Kirjoita 1–3 konkreettista tavoitetta tälle harjoituskerralle.</p>`}
+function renderStep(){const A=S.active,el=$('#sRoutine');if(!A||!el)return;const r=rt(A.rid);
+  if(r&&!A.done&&!r.ex[A.idx])A.done=true;
+  const list=r?`<ul class="steps">${r.ex.map((e,i)=>`<li class="${A.done||i<A.idx?'past':i===A.idx?'cur':''}"><span>${esc(e.name)}</span><span>${e.min} min</span></li>`).join('')}</ul>`:'';
+  if(!r)el.innerHTML=`<h2>Vapaa harjoittelu</h2><p class="mut">Tällä kerralla ei ole lämmittelyrutiinia. Aika kertyy päiväkirjaan.</p>`+metroLine();
+  else if(A.done)el.innerHTML=`<h2>Lämmittely valmis</h2><p class="mut">Jatka kappaleiden parissa. Aika kertyy edelleen päiväkirjaan.</p>`+metroLine()+list;
+  else{const e=r.ex[A.idx];el.innerHTML=`<p class="mut">Harjoitus ${A.idx+1}/${r.ex.length}, ${esc(r.name)}</p><div class="exname">${esc(e.name)}</div>
+    <div class="clock amb" id="sRem"></div><div class="bar"><i id="sBar"></i></div>
+    <div class="row"><button class="btn" data-act="ePrev">Edellinen</button><button class="btn" data-act="eNext">Seuraava</button></div>`+metroLine()+list}
+  syncMetro();tickUI()}
+function renderRecs(){const el=$('#sRecs');if(!el||!S.active)return;
+  el.innerHTML=S.active.recs.map((r,i)=>recRow(r,i)).join('')+
+    `<div><button class="btn" data-act="rec">${R.mr?'Pysäytä äänitys':'Äänitä otto'}</button>${R.mr?'<i class="recdot"></i><span class="mut">Äänitetään…</span>':''}</div>`}
+const recRow=(r,i)=>`<div><span>Otto ${i+1} (${fmt(r.dur)})</span><button class="btn" data-play="${r.id}">Kuuntele</button></div>`;
+function setEx(i){const A=S.active,r=rt(A.rid);if(!r)return;
+  if(i>=r.ex.length){A.done=true}else{A.done=false;A.idx=Math.max(0,i);const e=r.ex[A.idx];A.rem=(+e.min||1)*60;if(e.bpm)setBpm(+e.bpm)}
+  renderStep();save()}
+function chime(){const a=audio();[0,.22].forEach((d,i)=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=i?880:660;
+  g.gain.setValueAtTime(.3,a.currentTime+d);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d+.35);o.connect(g);g.connect(a.destination);o.start(a.currentTime+d);o.stop(a.currentTime+d+.4)})}
+function startSession(){audio();const d=S.draft;S.active={id:uid(),start:Date.now(),sec:0,goals:d.goals,notes:d.notes,rid:d.rid,idx:0,rem:0,done:false,recs:[]};
+  RUN.paused=false;RUN.last=Date.now();renderSession();if(rt(d.rid))setEx(0);save()}
+function endSession(){const A=S.active;if(!A)return;if(R.mr){toast('Pysäytä äänitys ennen harjoituksen lopettamista.');return}
+  const r=rt(A.rid);S.sessions.push({id:A.id,date:A.start,sec:Math.round(A.sec),goals:A.goals,notes:A.notes,routine:r?r.name:'',recs:A.recs});
+  S.active=null;S.draft={goals:[],notes:'',rid:A.rid};metro(false);save();toast('Harjoitus tallennettu päiväkirjaan.');show('journal')}
+function tick(){const A=S.active;if(!A||RUN.paused){RUN.last=Date.now();return}
+  const now=Date.now(),dt=(now-RUN.last)/1000;RUN.last=now;A.sec+=dt;
+  if(rt(A.rid)&&!A.done){A.rem-=dt;if(A.rem<=0){chime();setEx(A.idx+1)}}
+  tickUI();if(++RUN.n%20===0)save()}
+function tickUI(){const A=S.active;if(!A)return;const t=$('#sTot');if(t)t.textContent=fmt(A.sec);
+  const pb=$('#sPauseB');if(pb)pb.textContent=RUN.paused?'Jatka':'Tauko';
+  const r=rt(A.rid),rem=$('#sRem');if(rem&&r&&r.ex[A.idx]){rem.textContent=fmt(A.rem);$('#sBar').style.width=clamp(100*(1-A.rem/((+r.ex[A.idx].min||1)*60)),0,100)+'%'}}
+async function recToggle(){if(R.mr){R.mr.stop();return}
+  if(!window.MediaRecorder){toast('Tämä selain ei tue äänitystä.');return}
+  const st=await getMic();if(!st)return;let mr;try{mr=new MediaRecorder(st)}catch(e){toast('Äänitystä ei voitu aloittaa.');return}
+  R.mr=mr;R.chunks=[];R.t0=Date.now();mr.ondataavailable=e=>{if(e.data.size)R.chunks.push(e.data)};
+  mr.onstop=async()=>{const blob=new Blob(R.chunks,{type:mr.mimeType||'audio/webm'}),id=uid();await store.put('rec:'+id,blob);
+    R.mr=null;if(S.active){S.active.recs.push({id,dur:Math.round((Date.now()-R.t0)/1000)});save()}renderRecs();releaseMic()};
+  mr.start();renderRecs()}
+async function playRec(btn){const blob=await store.get('rec:'+btn.dataset.play);
+  if(!blob){toast('Äänitystä ei löydy tältä laitteelta.');return}
+  const a=document.createElement('audio');a.controls=true;a.src=URL.createObjectURL(blob);btn.replaceWith(a);a.play().catch(()=>{})}
+
+/* ---------- journal ---------- */
+function renderJournal(){const ss=[...S.sessions].sort((a,b)=>b.date-a.date),byDay={};
+  ss.forEach(s=>{const k=dayKey(s.date);byDay[k]=(byDay[k]||0)+s.sec});
+  const today=new Date();today.setHours(0,0,0,0);const days=[];
+  for(let i=13;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);days.push({d,m:Math.round((byDay[dayKey(d)]||0)/60)})}
+  const mx=Math.max(10,...days.map(x=>x.m));
+  const mon=new Date(today);mon.setDate(mon.getDate()-((mon.getDay()+6)%7));
+  const week=Math.round(ss.filter(s=>s.date>=mon.getTime()).reduce((a,s)=>a+s.sec,0)/60);
+  let streak=0;const c=new Date(today);if(!byDay[dayKey(c)])c.setDate(c.getDate()-1);while(byDay[dayKey(c)]){streak++;c.setDate(c.getDate()-1)}
+  const tot=ss.reduce((a,s)=>a+s.sec,0),WD=['su','ma','ti','ke','to','pe','la'];
+  $('#v-journal').innerHTML=`<div class="head"><h1>Päiväkirja</h1></div>
+  <div class="stats"><div><b>${week} min</b>tällä viikolla</div><div><b>${streak} pv</b>peräkkäin</div><div><b>${(tot/3600).toFixed(1)} h</b>yhteensä, ${ss.length} kertaa</div></div>
+  <div class="grid2"><div class="card"><h2>Viimeiset 14 päivää</h2><div class="chart">${days.map(x=>`<div title="${x.m} min"><span>${x.m||''}</span><i class="${x.m?'':'z'}" style="height:${x.m/mx*80}%"></i>${WD[x.d.getDay()]}</div>`).join('')}</div></div>
+  <div class="card"><h2>Pitkän ajan tavoitteet</h2>${S.longGoals.map((g,i)=>`<label class="goal"><input type="checkbox" data-lg="${i}" ${g.done?'checked':''}><span>${esc(g.t)}</span><button class="ico" data-act="lgDel" data-k="${i}" aria-label="Poista tavoite">×</button></label>`).join('')||'<p class="mut">Mitä haluat osata kuukauden tai lukukauden päästä?</p>'}
+    <div class="addrow"><input type="text" id="lgNew" placeholder="Esim. Bachin 1. sarjan preludi ulkoa jouluun mennessä"><button class="btn" data-act="lgAdd">Lisää</button></div></div></div>
+  <h2>Harjoituskerrat</h2>${ss.length?ss.map(s=>{const dn=s.goals.filter(g=>g.done).length;return `<details class="card ses" data-id="${s.id}"><summary><b>${new Date(s.date).toLocaleDateString('fi-FI',{weekday:'short',day:'numeric',month:'numeric'})}</b><span>${Math.max(1,Math.round(s.sec/60))} min</span>${s.routine?`<span class="mut">${esc(s.routine)}</span>`:''}${s.goals.length?`<span class="pill">Tavoitteet ${dn}/${s.goals.length}</span>`:''}</summary>
+    <div class="in">${s.goals.map(g=>`<div class="goal"><span>${g.done?'✓':'○'} ${esc(g.t)}</span></div>`).join('')}
+    ${s.notes?`<p class="notes">${esc(s.notes)}</p>`:''}<div class="recs">${s.recs.map(recRow).join('')}</div>
+    <button class="btn ghost" data-act="sesDel">Poista harjoituskerta</button></div></details>`}).join(''):`<p class="empty">Ei harjoituskertoja vielä. Aloita ensimmäinen Harjoitus-näkymästä, niin se tallentuu tänne.</p>`}`}
+
+/* ---------- scores ---------- */
+const COLORS=['#1b1b1b','#d22f27','#1f6feb','#f5c400','#2fa84f'];
+const V={sc:null,pdf:null,p:1,tool:'hand',color:COLORS[1],fit:'w',tok:0,task:null,cur:null,fr:null,f0:null,drawing:false,open:false};
+function renderLib(){$('#lib').innerHTML=`<div class="head"><div><h1>Nuotit</h1><p class="mut">Merkinnät, focus-rajaukset ja tempo tallentuvat nuottikohtaisesti.</p></div>
+  <div class="row"><button class="btn" data-act="sample">Avaa esimerkkisivu</button><label class="btn pri">Lisää PDF<input type="file" id="pdfIn" accept="application/pdf" hidden></label></div></div>`+
+  (S.scores.length?`<div class="shelf">${S.scores.map(s=>`<div class="card sc" data-id="${s.id}"><button class="open" data-act="open"><b>${esc(s.name)}</b><span class="mut">${s.pages} ${s.pages===1?'sivu':'sivua'}${s.bpm?', '+s.bpm+' bpm':''}</span></button><button class="btn ghost" data-act="scDel">Poista</button></div>`).join('')}</div>`
+  :`<p class="empty">Ei nuotteja vielä. Lisää PDF, niin voit tehdä siihen merkintöjä ja rajata näkyviin vain harjoiteltavat tahdit. Esimerkkisivulla voit kokeilla työkaluja heti.</p>`)}
+async function addPdf(file){if(!file)return;if(!window.pdfjsLib){toast('PDF-lukija ei latautunut. Tarkista verkkoyhteys.');return}
+  try{const id=uid(),doc=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;await store.put('pdf:'+id,file);
+    S.scores.push({id,name:file.name.replace(/\.pdf$/i,''),pages:doc.numPages,ann:{},focus:{},bpm:null,last:1});save();openScore(id,doc)}
+  catch(e){toast('PDF-tiedostoa ei voitu avata.')}}
+async function openScore(id,doc){const sc=S.scores.find(s=>s.id===id);if(!sc)return;
+  if(sc.sample)V.pdf=null;else if(doc)V.pdf=doc;else{
+    if(!window.pdfjsLib){toast('PDF-lukija ei latautunut. Tarkista verkkoyhteys.');return}
+    const blob=await store.get('pdf:'+id);if(!blob){toast('PDF-tiedostoa ei löydy tältä laitteelta. Lisää se uudelleen.');return}
+    try{V.pdf=await pdfjsLib.getDocument({data:await blob.arrayBuffer()}).promise}catch(e){toast('PDF-tiedostoa ei voitu avata.');return}}
+  V.sc=sc;V.p=clamp(sc.last||1,1,sc.pages);V.open=true;$('#v-scores').classList.add('viewing');$('#scT').textContent=sc.name;
+  if(sc.bpm)setBpm(sc.bpm);setTool('hand');renderPage()}
+function closeScore(){V.open=false;document.body.classList.remove('full');$('#v-scores').classList.remove('viewing');save();renderLib()}
+function drawSample(ctx,w,h){ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.fillStyle='#111';ctx.strokeStyle='#111';ctx.textAlign='center';
+  ctx.font=`600 ${w*.035}px Georgia,serif`;ctx.fillText('Esimerkkisivu',w/2,h*.07);ctx.font=`${w*.017}px Georgia,serif`;ctx.fillText('Kokeile kynää, korostusta ja focus-rajausta',w/2,h*.095);
+  ctx.textAlign='left';ctx.lineWidth=Math.max(1,w/900);const x0=w*.08,x1=w*.92,gap=h*.0065;
+  for(let s=0;s<9;s++){const y=h*.15+s*h*.09;for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(x0,y+i*gap);ctx.lineTo(x1,y+i*gap);ctx.stroke()}
+    for(let b=0;b<=4;b++){const x=x0+(x1-x0)*b/4;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+4*gap);ctx.stroke();
+      if(b<4){ctx.font=`${w*.013}px Georgia,serif`;ctx.fillText(String(s*4+b+1),x+3,y-gap*.8);
+        for(let k=0;k<4;k++){const nx=x+(x1-x0)/4*(.2+k*.2),ny=y+gap*(((s*7+b*3+k*2)%9)/2);
+          ctx.beginPath();ctx.ellipse(nx,ny,gap*.62,gap*.45,-.35,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(nx+gap*.55,ny);ctx.lineTo(nx+gap*.55,ny-gap*3.2);ctx.stroke()}}}}}
+async function renderPage(){if(!V.open)return;const my=++V.tok,sc=V.sc,st=$('#stage'),pc=$('#pc'),ink=$('#ink'),pg=$('#pg');
+  $('#pgN').textContent=V.p+' / '+sc.pages;sc.last=V.p;
+  let page=null,bw=595,bh=842;
+  if(V.pdf){try{page=await V.pdf.getPage(V.p)}catch(e){return}const b=page.getViewport({scale:1});bw=b.width;bh=b.height}
+  if(V.task){try{V.task.cancel();await V.task.promise}catch(e){}}
+  if(my!==V.tok)return;
+  const aw=Math.max(200,st.clientWidth-32),ah=Math.max(200,st.clientHeight-32);
+  const cw=V.fit==='w'?Math.min(aw,1400):Math.min(aw,ah*bw/bh),dpr=Math.min(window.devicePixelRatio||1,2),sca=cw/bw*dpr;
+  pg.style.width=cw+'px';pg.style.height=cw*bh/bw+'px';
+  pc.width=ink.width=Math.round(bw*sca);pc.height=ink.height=Math.round(bh*sca);
+  const ctx=pc.getContext('2d');
+  if(page){V.task=page.render({canvasContext:ctx,viewport:page.getViewport({scale:sca})});try{await V.task.promise}catch(e){return}finally{if(my===V.tok)V.task=null}}
+  else drawSample(ctx,pc.width,pc.height);
+  drawInk();drawFocus()}
+function strokes(){return V.sc.ann[V.p]||(V.sc.ann[V.p]=[])}
+function rects(){return V.sc.focus[V.p]||(V.sc.focus[V.p]=[])}
+function drawInk(){const c=$('#ink'),x=c.getContext('2d'),w=c.width,h=c.height;x.clearRect(0,0,w,h);x.lineCap='round';x.lineJoin='round';
+  const all=V.cur?[...strokes(),V.cur]:strokes();
+  all.forEach(s=>{x.globalAlpha=s.k==='hl'?.35:1;x.strokeStyle=s.c;x.lineWidth=(s.k==='hl'?.02:.0032)*w;x.beginPath();
+    s.pts.forEach((p,i)=>i?x.lineTo(p[0]*w,p[1]*h):x.moveTo(p[0]*w,p[1]*h));if(s.pts.length===1)x.lineTo(s.pts[0][0]*w+.1,s.pts[0][1]*h);x.stroke()});x.globalAlpha=1}
+function drawFocus(tmp){const saved=rects(),rs=tmp?[...saved,tmp]:saved,b=$('#blur'),P=v=>(v*100).toFixed(2)+'%';
+  if(!rs.length)b.style.display='none';else{b.style.display='block';const pts=['0 0','100% 0','100% 100%','0 100%','0 0'];
+    rs.forEach(r=>pts.push(`${P(r.x)} ${P(r.y)}`,`${P(r.x+r.w)} ${P(r.y)}`,`${P(r.x+r.w)} ${P(r.y+r.h)}`,`${P(r.x)} ${P(r.y+r.h)}`,`${P(r.x)} ${P(r.y)}`,'0 0'));
+    const cp=`polygon(evenodd, ${pts.join(',')})`;b.style.webkitClipPath=cp;b.style.clipPath=cp}
+  $('#frs').innerHTML=rs.map((r,i)=>`<div class="fr" style="left:${P(r.x)};top:${P(r.y)};width:${P(r.w)};height:${P(r.h)}">${i<saved.length?`<button data-act="fDel" data-k="${i}" aria-label="Poista rajaus">×</button>`:''}</div>`).join('')}
+function setTool(t){V.tool=t;$$('.tool').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$('#hit').classList.toggle('hand',t==='hand');$('#pg').classList.toggle('focusing',t==='focus');
+  $('#sws').innerHTML=(t==='pen'||t==='hl')?COLORS.map(c=>`<button class="sw ${c===V.color?'on':''}" data-act="col" data-k="${c}" style="background:${c}" aria-label="Väri"></button>`).join(''):''}
+function pos(e){const r=$('#hit').getBoundingClientRect(),f=v=>Math.round(clamp(v,0,1)*1e4)/1e4;return [f((e.clientX-r.left)/r.width),f((e.clientY-r.top)/r.height)]}
+function eraseAt(p){const ss=strokes(),r=$('#hit').getBoundingClientRect(),asp=r.height/r.width,n=ss.length;
+  V.sc.ann[V.p]=ss.filter(s=>!s.pts.some(q=>Math.hypot(q[0]-p[0],(q[1]-p[1])*asp)<.018));if(V.sc.ann[V.p].length!==n)drawInk()}
+function initHit(){const hit=$('#hit');
+  hit.addEventListener('pointerdown',e=>{if(V.tool==='hand')return;e.preventDefault();try{hit.setPointerCapture(e.pointerId)}catch(x){}V.drawing=true;const p=pos(e);
+    if(V.tool==='pen'||V.tool==='hl'){V.cur={k:V.tool,c:V.color,pts:[p]};drawInk()}
+    else if(V.tool==='erase')eraseAt(p);
+    else if(V.tool==='focus'){V.f0=p;V.fr={x:p[0],y:p[1],w:0,h:0}}});
+  hit.addEventListener('pointermove',e=>{if(!V.drawing)return;const p=pos(e);
+    if(V.cur){V.cur.pts.push(p);drawInk()}else if(V.tool==='erase')eraseAt(p);
+    else if(V.fr){V.fr={x:Math.min(p[0],V.f0[0]),y:Math.min(p[1],V.f0[1]),w:Math.abs(p[0]-V.f0[0]),h:Math.abs(p[1]-V.f0[1])};drawFocus(V.fr)}});
+  const end=()=>{if(!V.drawing)return;V.drawing=false;
+    if(V.cur){strokes().push(V.cur);V.cur=null;drawInk()}
+    if(V.fr){if(V.fr.w>.02&&V.fr.h>.01)rects().push(V.fr);V.fr=null;drawFocus()}
+    saveSoon()};
+  hit.addEventListener('pointerup',end);hit.addEventListener('pointercancel',end)}
+function turn(d){const n=clamp(V.p+d,1,V.sc.pages);if(n!==V.p){V.p=n;$('#stage').scrollTop=0;renderPage()}}
+
+/* ---------- settings ---------- */
+const ACCENTS=[['#007AFF','Sininen'],['#34A853','Vihreä'],['#FF9500','Oranssi'],['#FF3B30','Punainen'],['#FF2D55','Pinkki'],['#AF52DE','Violetti'],['#5856D6','Indigo'],['#2AA7BF','Turkoosi'],['#636366','Grafiitti']];
+let themeSet=false;
+function applyUI(){const r=document.documentElement,u=S.ui;r.style.setProperty('--pri',u.accent);
+  if(u.theme==='auto'){if(themeSet){r.removeAttribute('data-theme');themeSet=false}}else{r.setAttribute('data-theme',u.theme);themeSet=true}}
+function renderSettings(){const u=S.ui;$('#v-settings').innerHTML=`<div class="head"><h1>Asetukset</h1></div>
+  <div class="grid2"><div class="card"><h2>Korostusväri</h2><div class="swl">${ACCENTS.map(([c,n])=>`<button class="sw ${c===u.accent?'on':''}" data-act="accent" data-k="${c}" style="background:${c}" aria-label="${n}" title="${n}"></button>`).join('')}</div></div>
+  <div class="card"><h2>Ulkoasu</h2><div class="chips">${[['auto','Automaattinen'],['light','Vaalea'],['dark','Tumma']].map(([k,l])=>`<button class="chip ${k===u.theme?'on':''}" data-act="theme" data-k="${k}">${l}</button>`).join('')}</div></div></div>`}
+
+/* ---------- navigation + events ---------- */
+const RENDER={session:renderSession,routines:renderRoutines,journal:renderJournal,scores:()=>{if(!V.open)renderLib();else renderPage()},metro:renderMetro,tuner:renderTuner,settings:renderSettings};
+function show(v){$$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));$$('#rail .nav').forEach(b=>b.classList.toggle('on',b.dataset.nav===v));
+  if(v!=='scores')document.body.classList.remove('full');RENDER[v]();syncMetro()}
+function addGoal(inp,arr,after){const t=inp&&inp.value.trim();if(!t)return;arr.push({t,done:false});inp.value='';save();after()}
+document.addEventListener('click',e=>{const t=e.target;
+  const nav=t.closest('[data-nav]');if(nav)return show(nav.dataset.nav);
+  if(t.closest('.mplay'))return metro(!M.on);
+  const bd=t.closest('.bpmd');if(bd)return setBpm(S.metro.bpm+(+bd.dataset.d));
+  const pl=t.closest('[data-play]');if(pl)return playRec(pl);
+  const b=t.closest('[data-act]');if(!b)return;const k=b.dataset.k,act=b.dataset.act;
+  const rid=b.closest('.rt')?.dataset.id,r=rid&&rt(rid),exId=b.closest('.ex')?.dataset.ex;
+  switch(act){
+    case 'tap':tap();break;
+    case 'accent':S.ui.accent=k;save();applyUI();renderSettings();break;
+    case 'theme':S.ui.theme=k;save();applyUI();renderSettings();break;
+    case 'unit':S.metro.unit=k;M.beat=0;save();renderMetro();break;
+    case 'sig':S.metro.sig=k;S.metro.unit=SIGS[k].u;M.beat=0;save();renderMetro();break;
+    case 'sub':S.metro.sub=k;save();renderMetro();break;
+    case 'tun':tunerToggle();break;
+    case 'drone':droneToggle();break;
+    case 'dn':S.drone.n=+k;save();renderTuner();droneTune();break;
+    case 'do':S.drone.o=+k;save();renderTuner();droneTune();break;
+    case 'rAdd':S.routines.push({id:uid(),name:'Uusi rutiini',ex:[{id:uid(),name:'',min:2,bpm:''}]});save();renderRoutines();break;
+    case 'rDel':sure(b,()=>{S.routines=S.routines.filter(x=>x.id!==rid);save();renderRoutines()});break;
+    case 'rStart':if(S.active){toast('Harjoitus on jo käynnissä. Lopeta se ensin.');show('session')}else{S.draft.rid=rid;save();show('session')}break;
+    case 'eAdd':r.ex.push({id:uid(),name:'',min:2,bpm:''});save();renderRoutines();break;
+    case 'eDel':r.ex=r.ex.filter(x=>x.id!==exId);save();renderRoutines();break;
+    case 'eUp':{const i=r.ex.findIndex(x=>x.id===exId);if(i>0){[r.ex[i-1],r.ex[i]]=[r.ex[i],r.ex[i-1]];save();renderRoutines()}break}
+    case 'sStart':startSession();break;
+    case 'sPause':RUN.paused=!RUN.paused;RUN.last=Date.now();if(RUN.paused)metro(false);tickUI();break;
+    case 'sEnd':sure(b,endSession);break;
+    case 'ePrev':setEx(S.active.idx-1);break;
+    case 'eNext':setEx(S.active.idx+1);break;
+    case 'gAdd':addGoal($('#gNew'),curGoals(),renderGoals);break;
+    case 'gDel':curGoals().splice(+b.dataset.gi,1);save();renderGoals();break;
+    case 'rec':recToggle();break;
+    case 'lgAdd':addGoal($('#lgNew'),S.longGoals,renderJournal);break;
+    case 'lgDel':S.longGoals.splice(+k,1);save();renderJournal();break;
+    case 'sesDel':sure(b,()=>{const id=b.closest('.ses').dataset.id,s=S.sessions.find(x=>x.id===id);(s?.recs||[]).forEach(x=>store.del('rec:'+x.id));S.sessions=S.sessions.filter(x=>x.id!==id);save();renderJournal()});break;
+    case 'sample':if(!S.scores.find(s=>s.id==='sample'))S.scores.push({id:'sample',sample:true,name:'Esimerkkisivu',pages:1,ann:{},focus:{},bpm:null,last:1});save();openScore('sample');break;
+    case 'open':openScore(b.closest('.sc').dataset.id);break;
+    case 'scDel':sure(b,()=>{const id=b.closest('.sc').dataset.id;store.del('pdf:'+id);S.scores=S.scores.filter(x=>x.id!==id);save();renderLib()});break;
+    case 'back':closeScore();break;
+    case 'pPrev':turn(-1);break;
+    case 'pNext':turn(1);break;
+    case 'tool':setTool(b.dataset.t);break;
+    case 'col':V.color=k;setTool(V.tool);break;
+    case 'undo':strokes().pop();drawInk();saveSoon();break;
+    case 'clr':sure(b,()=>{V.sc.ann[V.p]=[];drawInk();save()});break;
+    case 'fclr':V.sc.focus[V.p]=[];drawFocus();saveSoon();break;
+    case 'fDel':rects().splice(+k,1);drawFocus();saveSoon();break;
+    case 'fit':V.fit=V.fit==='w'?'p':'w';$('#fitB').textContent=V.fit==='w'?'Koko sivu':'Sivun leveys';renderPage();break;
+    case 'full':document.body.classList.toggle('full');$('#fullB').textContent=document.body.classList.contains('full')?'Näytä valikko':'Koko näyttö';setTimeout(renderPage,60);break;
+  }});
+document.addEventListener('change',e=>{const t=e.target,m=S.metro;
+  if(t.id==='pdfIn'){addPdf(t.files[0]);t.value='';return}
+  if(t.id==='acc')m.accent=t.checked;
+  else if(t.id==='rampOn')m.ramp.on=t.checked;
+  else if(t.id==='rStep')m.ramp.step=clamp(+t.value||4,1,20);
+  else if(t.id==='rBars')m.ramp.bars=clamp(+t.value||4,1,32);
+  else if(t.id==='rTarget')m.ramp.target=clamp(+t.value||120,30,240);
+  else if(t.id==='a4'){S.a4=clamp(+t.value||440,415,446);t.value=S.a4;droneTune()}
+  else if(t.id==='dFifth'){S.drone.fifth=t.checked;droneTune()}
+  else if(t.id==='sRt'){S.draft.rid=t.value;renderPrev()}
+  else if(t.dataset.gi!==undefined&&t.type==='checkbox')curGoals()[+t.dataset.gi].done=t.checked;
+  else if(t.dataset.lg!==undefined)S.longGoals[+t.dataset.lg].done=t.checked;
+  else if(t.dataset.f){const card=t.closest('.rt'),r=card&&rt(card.dataset.id);if(!r)return;const exEl=t.closest('.ex');
+    if(exEl){const ex=r.ex.find(x=>x.id===exEl.dataset.ex);if(ex)ex[t.dataset.f]=t.dataset.f==='name'?t.value:(+t.value||'')}else r.name=t.value;
+    card.querySelector('.tot').textContent=total(r)}
+  save()});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.id==='bpmR')setBpm(+t.value);
+  else if(t.id==='sNotes'){(S.active||S.draft).notes=t.value;saveSoon()}
+  else if(t.id==='dVol'){S.drone.vol=+t.value;if(D)D.out.gain.setTargetAtTime(S.drone.vol/100*.5,ac.currentTime,.05);saveSoon()}});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.id==='gNew'){addGoal(e.target,curGoals(),renderGoals);return}
+  if(e.key==='Enter'&&e.target.id==='lgNew'){addGoal(e.target,S.longGoals,renderJournal);return}
+  if(!V.open||!$('#v-scores').classList.contains('on')||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'){e.preventDefault();turn(1)}
+  if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();turn(-1)}});
+let rzT;window.addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(()=>{if(V.open)renderPage()},200)});
+window.addEventListener('pagehide',save);
+
+/* ---------- boot ---------- */
+if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+applyUI();initHit();renderMetro();renderTuner();show('session');setInterval(tick,250);requestAnimationFrame(frame);
+</script>
+</body>
+</html>
