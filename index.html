@@ -194,6 +194,21 @@ h1{letter-spacing:-.02em}
 .gb.cur{background:color-mix(in srgb,var(--pri) 10%,transparent)}
 .chip.sm{min-height:34px;padding:0 12px;font-size:14px;white-space:nowrap}
 .recs.sub{padding-left:32px}
+.an2{display:grid;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.an2{grid-template-columns:1fr}}
+.score{font:700 64px/1 var(--disp);letter-spacing:-.03em;margin:16px 0 2px;font-variant-numeric:tabular-nums}
+.abar{position:relative;height:46px;border-radius:10px;background:var(--line);overflow:hidden;margin:14px 0 8px;cursor:pointer}
+.abar i{position:absolute;top:0;bottom:0}
+.abar i.g,.find.g i{background:#34C759}.abar i.y,.find.y i{background:#FFCC00}.abar i.r,.find.r i{background:#FF3B30}
+.abar i.sh{background:var(--surface);opacity:.8}
+#anHead{position:absolute;top:0;bottom:0;left:0;width:3px;margin-left:-1px;background:var(--ink)}
+.find,.take{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:6px 12px;border:0;border-radius:12px;background:var(--bg);margin-bottom:6px;text-align:left}
+.find i{width:12px;height:12px;border-radius:50%;flex:none}
+.find b{font-variant-numeric:tabular-nums;min-width:3.2ch}
+.take{justify-content:space-between}
+.take.on{background:var(--pri);color:var(--pri-ink)}
+.lab{font-size:13px;color:var(--mut);margin:12px 0 6px}
+@media (min-width:721px){#rail{overflow-y:auto}#rail .nav{min-height:54px;flex:none}}
 </style>
 </head>
 <body>
@@ -206,6 +221,7 @@ h1{letter-spacing:-.02em}
   <button class="nav" data-nav="routines"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>Rutiinit</button>
   <button class="nav" data-nav="scores"><svg viewBox="0 0 24 24"><path d="M9 18V5l10-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>Nuotit</button>
   <button class="nav" data-nav="journal"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Päiväkirja</button>
+  <button class="nav" data-nav="analysis"><svg viewBox="0 0 24 24"><path d="M3 12h2l2-6 3 12 3-9 2 5 2-2h4"/></svg>Analyysi</button>
   <button class="nav" data-nav="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Asetukset</button>
   <button class="nav" data-act="fs"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>Koko näyttö</button>
   <div class="mini"><button class="mplay" data-on="▶" data-off="■" aria-label="Metronomi päälle tai pois">▶</button><span><span class="bpmv">72</span></span></div>
@@ -304,6 +320,7 @@ h1{letter-spacing:-.02em}
 </section>
 
 <section id="v-journal" class="view"></section>
+<section id="v-analysis" class="view"></section>
 <section id="v-settings" class="view"></section>
 </main>
 </div>
@@ -332,8 +349,9 @@ const DEF={a4:440,metro:{bpm:72,sig:'4/4',sub:'q',accent:true,ramp:{on:false,ste
     {id:'e2',name:'A-duuriasteikko, 3 oktaavia',min:3,bpm:72},
     {id:'e3',name:'A-duurin murtosoinnut',min:2,bpm:72},
     {id:'e4',name:'Jousenvaihdot kielten välillä',min:3,bpm:80}]}],
-  ui:{accent:'#007AFF',theme:'auto'},longGoals:[],sessions:[],scores:[],draft:{goals:[],notes:'',rid:'r1'},active:null};
+  ui:{accent:'#007AFF',theme:'auto',thr:{g:10,y:25},cfg:{tonic:0,mode:'maj',tun:'just'}},longGoals:[],sessions:[],scores:[],draft:{goals:[],notes:'',rid:'r1'},active:null};
 let S;try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){S=JSON.parse(JSON.stringify(DEF))}
+S.ui=Object.assign({},DEF.ui,S.ui);
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 [S.draft.goals,S.active&&S.active.goals,...S.sessions.map(x=>x.goals)].forEach(a=>a&&a.forEach(g=>{if(!g.id)g.id=uid()}));
 let saveT;function saveSoon(){clearTimeout(saveT);saveT=setTimeout(save,400)}
@@ -383,6 +401,7 @@ function setBpm(v){v=clamp(Math.round(v)||72,30,240);S.metro.bpm=v;$('#bpmR').va
 function frame(){if(M.on&&ac){let b=null;while(M.q.length&&M.q[0].t<=ac.currentTime)b=M.q.shift();
     if(b){$$('#dots i').forEach((d,i)=>d.classList.toggle('on',i===b.beat));
       $$('.beatdot').forEach(d=>{d.classList.add('on');setTimeout(()=>d.classList.remove('on'),90)})}}
+  const hd=$('#anHead');if(hd&&AN.buf){const p=pPos();hd.style.left=(100*p/AN.buf.duration)+'%';const tl=$('#anTime');if(tl)tl.textContent=fmt(p)+' / '+fmt(AN.buf.duration)}
   requestAnimationFrame(frame)}
 function renderMetro(){const m=S.metro;
   $('#sigs').innerHTML=Object.keys(SIGS).map(k=>`<button class="chip ${k===m.sig?'on':''}" data-act="sig" data-k="${k}">${k}</button>`).join('');
@@ -397,17 +416,17 @@ function tap(){const n=performance.now();if(taps.length&&n-taps[taps.length-1]>2
 /* ---------- tuner + drone ---------- */
 const NOTES=['C','Cis','D','Es','E','F','Fis','G','As','A','B','H'];
 const T={on:false,an:null,src:null,buf:null,hist:[],miss:0};
-function detect(buf,sr){const n=buf.length>>1,b=new Float32Array(n);let e=0;
-  for(let i=0;i<n;i++){b[i]=(buf[2*i]+buf[2*i+1])/2;e+=b[i]*b[i]}
-  if(Math.sqrt(e/n)<.006)return -1;
-  sr/=2;const maxL=Math.min(Math.floor(sr/58),(n>>1)-2),W=n-maxL-2,c=new Float32Array(maxL+2);
+function acf(b,sr,thr){const n=b.length;
+  if(thr){let e=0;for(let i=0;i<n;i++)e+=b[i]*b[i];if(Math.sqrt(e/n)<thr)return -1}
+  const maxL=Math.min(Math.floor(sr/58),(n>>1)-2),W=n-maxL-2,c=new Float32Array(maxL+2);
   for(let l=0;l<=maxL+1;l++){let s=0;for(let i=0;i<W;i++)s+=b[i]*b[i+l];c[l]=s}
   let l=1;while(l<maxL&&c[l]>c[l+1])l++;
   let g=0;for(let k=l;k<=maxL;k++)if(c[k]>g)g=c[k];
   if(g<.4*c[0])return -1;
-  for(let k=Math.max(l,2);k<=maxL;k++)if(c[k]>.9*g&&c[k]>=c[k-1]&&c[k]>=c[k+1]){
+  for(let k=Math.max(l,Math.floor(sr/1500));k<=maxL;k++)if(c[k]>.9*g&&c[k]>=c[k-1]&&c[k]>=c[k+1]){
     const a=c[k-1],m=c[k],z=c[k+1],d=a-2*m+z;return sr/(k+(d?(a-z)/(2*d):0))}
   return -1}
+function detect(buf,sr){const n=buf.length>>1,b=new Float32Array(n);for(let i=0;i<n;i++)b[i]=(buf[2*i]+buf[2*i+1])/2;return acf(b,sr/2,.006)}
 async function tunerToggle(){
   if(T.on){T.on=false;$('#tunBtn').textContent='Käynnistä viritin';$('#needle').classList.remove('live');releaseMic();return}
   const st=await getMic();if(!st)return;const a=audio();
@@ -479,7 +498,7 @@ function renderSession(){const el=$('#v-session'),A=S.active;
 function renderPrev(){const r=rt(S.draft.rid),p=$('#sPrev');if(!p)return;
   p.innerHTML=r?`<ul class="steps">${r.ex.map(e=>`<li><span>${esc(e.name)}</span><span>${e.min} min${e.bpm?', '+e.bpm+' bpm':''}</span></li>`).join('')}</ul>`:''}
 function recList(recs,goals,gid){const ids=goals.map(g=>g.id),l=recs.filter(r=>gid?r.gid===gid:!ids.includes(r.gid));
-  return l.map((r,i)=>`<div><span>Otto ${i+1} (${fmt(r.dur)})</span><button class="btn" data-play="${r.id}">Kuuntele</button><button class="btn ghost" data-act="recDel" data-k="${r.id}">Poista</button></div>`).join('')}
+  return l.map((r,i)=>`<div><span>Otto ${i+1} (${fmt(r.dur)})</span><button class="btn" data-play="${r.id}">Kuuntele</button><button class="btn" data-act="an" data-k="${r.id}">Analysoi</button><button class="btn ghost" data-act="recDel" data-k="${r.id}">Poista</button></div>`).join('')}
 function renderGoals(){const g=$('#sGoals');if(!g)return;const A=S.active,gs=curGoals();
   g.innerHTML=gs.length?gs.map((x,i)=>`<div class="gb ${A&&A.cur===x.id?'cur':''}"><div class="goal"><input type="checkbox" data-gi="${i}" ${x.done?'checked':''} aria-label="Merkitse tehdyksi"><span>${esc(x.t)}</span>
     ${A&&!x.done?`<button class="chip sm ${A.cur===x.id?'on':''}" data-act="gCur" data-k="${x.id}">${A.cur===x.id?'Työn alla':'Työstä tätä'}</button>`:''}<button class="ico" data-act="gDel" data-gi="${i}" aria-label="Poista tavoite">×</button></div>
@@ -618,6 +637,93 @@ function initHit(){const hit=$('#hit');
   hit.addEventListener('pointerup',end);hit.addEventListener('pointercancel',end)}
 function turn(d){const n=clamp(V.p+d,1,V.sc.pages);if(n!==V.p){V.p=n;$('#stage').scrollTop=0;renderPage()}}
 
+/* ---------- intonation analysis ---------- */
+const SHARP=['C','Cis','D','Dis','E','F','Fis','G','Gis','A','Ais','H'],FLAT=['C','Des','D','Es','E','F','Ges','G','As','A','B','H'];
+const TUN={just:[0,111.73,203.91,315.64,386.31,498.04,590.22,701.96,813.69,884.36,996.09,1088.27],
+  pyth:[0,90.22,203.91,294.13,407.82,498.04,611.73,701.96,792.18,905.87,996.09,1109.78],
+  et:[0,100,200,300,400,500,600,700,800,900,1000,1100]};
+const TUNL={just:'Puhdas',pyth:'Pytagoralainen',et:'Tasavireinen'};
+const AN={sid:null,rid:null,buf:null,trk:null,tok:0},TRK=new Map(),P={src:null,t0:0,off:0,pos:0,playing:false};
+const anSes=()=>S.active&&S.active.id===AN.sid?S.active:S.sessions.find(x=>x.id===AN.sid);
+const anRec=()=>{const s=anSes();return s&&s.recs.find(r=>r.id===AN.rid)};
+function anCfg(){const s=anSes(),r=anRec(),o=s.goals.find(x=>x.id===r.gid)||r;if(!o.cfg)o.cfg={...S.ui.cfg};return o.cfg}
+/* pitch track of a whole recording: one frequency (or -1) per ~35 ms */
+async function track(id,buf,onp){if(TRK.has(id))return TRK.get(id);
+  let t=await store.get('trk:'+id);if(t&&t.v===1){TRK.set(id,t);return t}
+  const ch=buf.getChannelData(0),sr=buf.sampleRate/2,n=ch.length>>1,d=new Float32Array(n);
+  for(let i=0;i<n;i++)d[i]=(ch[2*i]+ch[2*i+1])/2;
+  const WIN=2048,HOP=768,nf=Math.max(0,Math.floor((n-WIN)/HOP)+1),f=new Float32Array(nf),rms=new Float32Array(nf);let mx=0;
+  for(let k=0;k<nf;k++){let e=0;for(let i=k*HOP,z=i+WIN;i<z;i++)e+=d[i]*d[i];rms[k]=Math.sqrt(e/WIN);if(rms[k]>mx)mx=rms[k]}
+  const thr=Math.max(.0015,mx*.06);
+  for(let k=0;k<nf;k++){f[k]=rms[k]<thr?-1:acf(d.subarray(k*HOP,k*HOP+WIN),sr,0);
+    if(k%30===29){onp&&onp(k/nf);await new Promise(r=>setTimeout(r))}}
+  t={v:1,dt:HOP/sr,off:WIN/2/sr,f,dur:buf.duration};TRK.set(id,t);store.put('trk:'+id,t);return t}
+/* group frames into notes; a note's pitch is the median of its frames, so vibrato averages out */
+function notesOf(t){const ns=[];let cur=null;const close=()=>{if(cur){ns.push(cur);cur=null}};
+  for(let k=0;k<t.f.length;k++){const f=t.f[k];if(!(f>0)){close();continue}
+    const m=69+12*Math.log2(f/S.a4);if(cur&&Math.abs(m-cur.sum/cur.ms.length)>.7)close();
+    if(!cur)cur={k0:k,ms:[],sum:0};cur.ms.push(m);cur.sum+=m}
+  close();
+  return ns.map(n=>{const len=n.ms.length,core=(len>=5?n.ms.slice(1,-1):n.ms).slice().sort((a,b)=>a-b);
+    return {t0:Math.max(0,n.k0*t.dt+t.off-t.dt/2),t1:(n.k0+len-1)*t.dt+t.off+t.dt/2,m:core[core.length>>1],ok:len>=3}})}
+function evalNotes(ns,cfg,trim){const tab=TUN[cfg.tun].slice(),th=S.ui.thr;if(cfg.tun==='just'&&cfg.mode==='min')tab[10]=1017.6;
+  return ns.map(n=>{const o={...n};if(!n.ok||(trim&&(n.t1<trim[0]||n.t0>trim[1]))){o.c='x';return o}
+    let c=((n.m-cfg.tonic)*100)%1200;if(c<0)c+=1200;const d=Math.round(c/100)%12;let dev=c-tab[d];if(dev>600)dev-=1200;if(dev<-600)dev+=1200;
+    o.pc=(d+cfg.tonic)%12;o.dev=dev;o.c=Math.abs(dev)<=th.g?'g':Math.abs(dev)<=th.y?'y':'r';return o})}
+/* player (Web Audio, so seeking works for recorded blobs) */
+function pPos(){return P.playing?Math.min(AN.buf.duration,P.off+ac.currentTime-P.t0):P.pos}
+function pUI(){const b=$('#anPlay');if(b)b.textContent=P.playing?'Tauko':'Toista'}
+function pStop(){if(P.src){const x=P.src;P.pos=pPos();P.src=null;P.playing=false;x.onended=null;try{x.stop()}catch(e){}}pUI()}
+function pPlay(from){if(!AN.buf)return;pStop();const a=audio(),x=a.createBufferSource();x.buffer=AN.buf;x.connect(a.destination);
+  P.off=clamp(from,0,Math.max(0,AN.buf.duration-.05));P.t0=a.currentTime;x.start(0,P.off);
+  x.onended=()=>{if(P.src===x){P.src=null;P.playing=false;P.pos=0;pUI()}};P.src=x;P.playing=true;pUI()}
+function openAn(sid,rid){pStop();P.pos=0;AN.sid=sid;AN.rid=rid;AN.buf=AN.trk=null;show('analysis')}
+function renderAnalysis(){const el=$('#v-analysis');
+  if(!anRec()){const c=[S.active,...[...S.sessions].sort((a,b)=>b.date-a.date)].find(x=>x&&x.recs.length);
+    if(c){AN.sid=c.id;AN.rid=c.recs[c.recs.length-1].id;AN.buf=AN.trk=null;P.pos=0}
+    else{el.innerHTML=`<div class="head"><h1>Analyysi</h1></div><p class="empty">Ei vielä äänityksiä. Äänitä otto Harjoitus-näkymässä ja paina sen vieressä ”Analysoi”, niin näet tässä, kuinka puhtaasti pätkä meni.</p>`;return}}
+  const s=anSes();
+  el.innerHTML=`<div class="head"><div><h1>Analyysi</h1><p class="mut">${s===S.active?'Käynnissä oleva harjoitus':'Harjoitus '+new Date(s.date).toLocaleDateString('fi-FI',{weekday:'short',day:'numeric',month:'numeric'})}</p></div></div>
+    <div class="an2"><div class="card" id="anMain"></div><div class="card"><h2>Harjoituksen äänitykset</h2><div id="anList"></div></div></div>`;
+  renderAnList();if(AN.trk&&AN.buf)renderAnBody();else loadAn()}
+function renderAnList(){const s=anSes(),el=$('#anList');if(!s||!el)return;const ids=s.goals.map(g=>g.id);
+  const grp=(label,l)=>l.length?`<p class="lab">${esc(label)}</p>`+l.map((r,i)=>`<button class="take ${r.id===AN.rid?'on':''}" data-act="anSel" data-k="${r.id}"><span>Otto ${i+1} (${fmt(r.dur)})</span><b>${r.res!=null?r.res+' %':''}</b></button>`).join(''):'';
+  el.innerHTML=s.goals.map(g=>grp(g.t,s.recs.filter(r=>r.gid===g.id))).join('')+grp('Ilman tavoitetta',s.recs.filter(r=>!ids.includes(r.gid)))}
+async function loadAn(){const my=++AN.tok,rid=AN.rid,msg=m=>{const e=$('#anMain');if(e&&my===AN.tok)e.innerHTML=`<p class="mut">${m}</p>`};
+  msg('Ladataan äänitettä…');const blob=await store.get('rec:'+rid);
+  if(!blob)return msg('Äänitystä ei löydy tältä laitteelta.');
+  let buf;try{buf=await audio().decodeAudioData(await blob.arrayBuffer())}catch(e){return msg('Äänitystä ei voitu avata analysoitavaksi tällä selaimella.')}
+  if(my!==AN.tok)return;AN.buf=buf;
+  const t=await track(rid,buf,p=>msg('Analysoidaan… '+Math.round(p*100)+' %'));
+  if(my!==AN.tok)return;AN.trk=t;renderAnBody()}
+function renderAnBody(){const s=anSes(),r=anRec(),el=$('#anMain');if(!s||!r||!el||!AN.trk)return;
+  const cfg=anCfg(),t=AN.trk,D=t.dur||1,th=S.ui.thr,goal=s.goals.find(x=>x.id===r.gid);
+  const NM=(cfg.mode==='maj'?[5,10,3,8,1]:[2,7,0,5,10,3]).includes(cfg.tonic)?FLAT:SHARP;
+  const ns=evalNotes(notesOf(t),cfg,r.trim);let tg=0,ty=0,tr=0;
+  ns.forEach(n=>{const d=n.t1-n.t0;if(n.c==='g')tg+=d;else if(n.c==='y')ty+=d;else if(n.c==='r')tr+=d});
+  const tot=tg+ty+tr,pc=x=>tot?Math.round(100*x/tot):0;r.res=tot?pc(tg):null;saveSoon();
+  const fs=[];let cur=null;
+  ns.forEach(n=>{if(n.c==='x')return;if(n.c==='g'){cur=null;return}if(n.t1-n.t0<.18)return;
+    if(cur&&n.t0-cur.t1<.4){cur.t1=n.t1;if(!cur.pcs.includes(n.pc))cur.pcs.push(n.pc);if(Math.abs(n.dev)>Math.abs(cur.dev)){cur.dev=n.dev;cur.c=n.c}}
+    else{cur={t0:n.t0,t1:n.t1,pcs:[n.pc],dev:n.dev,c:n.c};fs.push(cur)}});
+  const by={};ns.forEach(n=>{if(n.c==='x')return;const d=n.t1-n.t0,o=by[n.pc]||(by[n.pc]={w:0,s:0,k:0});o.w+=d;o.s+=n.dev*d;o.k++});
+  const rec=Object.keys(by).map(k=>({pc:+k,avg:by[k].s/by[k].w,k:by[k].k})).filter(x=>x.k>=2&&Math.abs(x.avg)>th.g).sort((a,b)=>Math.abs(b.avg)-Math.abs(a.avg)).slice(0,4);
+  const dir=d=>Math.round(Math.abs(d))+' senttiä '+(d<0?'alavireinen':'ylävireinen'),X=v=>(100*v/D).toFixed(2)+'%';
+  el.innerHTML=`<h2>${goal?esc(goal.t):'Ilman tavoitetta'}</h2>
+    <div class="row wrap"><select id="anTon" aria-label="Sävellajin perussävel">${NOTES.map((n,i)=>`<option value="${i}" ${i===cfg.tonic?'selected':''}>${n}</option>`).join('')}</select>
+      ${[['maj','Duuri'],['min','Molli']].map(([k,l])=>`<button class="chip ${cfg.mode===k?'on':''}" data-act="anMode" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="chips" style="margin-top:10px">${Object.keys(TUNL).map(k=>`<button class="chip ${cfg.tun===k?'on':''}" data-act="anTun" data-k="${k}">${TUNL[k]}</button>`).join('')}</div>
+    ${tot?`<div class="score">${pc(tg)} %</div><p>puhdasta. Lähellä ${pc(ty)} %, epäpuhdasta ${pc(tr)} %.</p>`:`<p class="empty">Äänitteestä ei löytynyt analysoitavia säveliä. Kokeile äänittää lähempää tai hiljaisemmassa tilassa.</p>`}
+    <div class="abar" data-act="anSeek">${ns.filter(n=>n.c!=='x').map(n=>`<i class="${n.c}" style="left:${X(n.t0)};width:${X(n.t1-n.t0)}"></i>`).join('')}
+      ${r.trim?`<i class="sh" style="left:0;width:${X(r.trim[0])}"></i><i class="sh" style="left:${X(r.trim[1])};right:0"></i>`:''}<b id="anHead"></b></div>
+    <p class="lab" style="margin-top:0">Vihreä: enintään ±${th.g} senttiä. Keltainen: enintään ±${th.y}. Punainen: enemmän. Harmaa: ei analysoitu (tauko, liuku tai kaksoisote).</p>
+    <div class="row wrap"><button class="btn pri" data-act="anPlay" id="anPlay">Toista</button><span id="anTime" class="mut"></span>
+      <button class="btn" data-act="anT0">Alku tähän</button><button class="btn" data-act="anT1">Loppu tähän</button>${r.trim?`<button class="btn ghost" data-act="anTx">Poista rajaus</button>`:''}</div>
+    <h2>Huomiot</h2>${fs.length?fs.map(f=>`<button class="find ${f.c}" data-act="anGo" data-k="${f.t0.toFixed(2)}"><i></i><b>${fmt(Math.floor(f.t0))}</b><span>${f.pcs.map(p=>NM[p]).join(', ')}, ${dir(f.dev)}</span></button>`).join(''):`<p class="mut">${tot?'Ei huomioita näillä rajoilla.':'–'}</p>`}
+    ${rec.length?`<h2>Toistuvat poikkeamat</h2>${rec.map(x=>`<p>${NM[x.pc]} on keskimäärin ${dir(x.avg)} (${x.k} säveltä).</p>`).join('')}`:''}`;
+  pUI();renderAnList()}
+function anSet(fn){const c=anCfg();fn(c);S.ui.cfg={...c};save();renderAnBody()}
+
 /* ---------- settings ---------- */
 const ACCENTS=[['#007AFF','Sininen'],['#34A853','Vihreä'],['#FF9500','Oranssi'],['#FF3B30','Punainen'],['#FF2D55','Pinkki'],['#AF52DE','Violetti'],['#5856D6','Indigo'],['#2AA7BF','Turkoosi'],['#636366','Grafiitti']];
 let themeSet=false;
@@ -625,7 +731,10 @@ function applyUI(){const r=document.documentElement,u=S.ui;r.style.setProperty('
   if(u.theme==='auto'){if(themeSet){r.removeAttribute('data-theme');themeSet=false}}else{r.setAttribute('data-theme',u.theme);themeSet=true}}
 function renderSettings(){const u=S.ui;$('#v-settings').innerHTML=`<div class="head"><h1>Asetukset</h1></div>
   <div class="grid2"><div class="card"><h2>Korostusväri</h2><div class="swl">${ACCENTS.map(([c,n])=>`<button class="sw ${c===u.accent?'on':''}" data-act="accent" data-k="${c}" style="background:${c}" aria-label="${n}" title="${n}"></button>`).join('')}</div></div>
-  <div class="card"><h2>Ulkoasu</h2><div class="chips">${[['auto','Automaattinen'],['light','Vaalea'],['dark','Tumma']].map(([k,l])=>`<button class="chip ${k===u.theme?'on':''}" data-act="theme" data-k="${k}">${l}</button>`).join('')}</div></div></div>`}
+  <div class="card"><h2>Ulkoasu</h2><div class="chips">${[['auto','Automaattinen'],['light','Vaalea'],['dark','Tumma']].map(([k,l])=>`<button class="chip ${k===u.theme?'on':''}" data-act="theme" data-k="${k}">${l}</button>`).join('')}</div></div>
+  <div class="card"><h2>Puhtausanalyysin rajat</h2><p class="mut">Kuinka paljon sävel saa poiketa tavoitteesta. Pienempi luku on tiukempi.</p>
+    <label class="row" style="margin-bottom:10px">Puhdas: enintään ± <input type="number" id="thrG" min="2" max="30" value="${u.thr.g}" inputmode="numeric"> senttiä</label>
+    <label class="row">Lähellä: enintään ± <input type="number" id="thrY" min="5" max="60" value="${u.thr.y}" inputmode="numeric"> senttiä</label></div></div>`}
 
 const isFs=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
 function fs(on){const d=document,e=d.documentElement;if(on===undefined)on=!isFs();if(on===isFs())return;
@@ -634,9 +743,9 @@ function fs(on){const d=document,e=d.documentElement;if(on===undefined)on=!isFs(
   catch(x){toast('Koko näytön tila ei ole käytettävissä tässä näkymässä.')}}
 
 /* ---------- navigation + events ---------- */
-const RENDER={session:renderSession,routines:renderRoutines,journal:renderJournal,scores:()=>{if(!V.open)renderLib();else renderPage()},metro:renderMetro,tuner:renderTuner,settings:renderSettings};
+const RENDER={session:renderSession,routines:renderRoutines,journal:renderJournal,scores:()=>{if(!V.open)renderLib();else renderPage()},metro:renderMetro,tuner:renderTuner,settings:renderSettings,analysis:renderAnalysis};
 function show(v){$$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));$$('#rail .nav').forEach(b=>b.classList.toggle('on',b.dataset.nav===v));
-  if(v!=='scores')document.body.classList.remove('full');RENDER[v]();syncMetro()}
+  if(v!=='scores')document.body.classList.remove('full');if(v!=='analysis')pStop();RENDER[v]();syncMetro()}
 function addGoal(inp,arr,after){const t=inp&&inp.value.trim();if(!t)return;arr.push({id:uid(),t,done:false});inp.value='';save();after()}
 document.addEventListener('click',e=>{const t=e.target;
   const nav=t.closest('[data-nav]');if(nav)return show(nav.dataset.nav);
@@ -647,6 +756,16 @@ document.addEventListener('click',e=>{const t=e.target;
   const rid=b.closest('.rt')?.dataset.id,r=rid&&rt(rid),exId=b.closest('.ex')?.dataset.ex;
   switch(act){
     case 'tap':tap();break;
+    case 'an':{const ses=b.closest('.ses');openAn(ses?ses.dataset.id:S.active.id,k);break}
+    case 'anSel':openAn(AN.sid,k);break;
+    case 'anMode':anSet(c=>c.mode=k);break;
+    case 'anTun':anSet(c=>c.tun=k);break;
+    case 'anPlay':P.playing?pStop():pPlay(P.pos);break;
+    case 'anGo':pPlay(Math.max(0,+k-2));break;
+    case 'anSeek':{if(!AN.buf)break;const rc=b.getBoundingClientRect();pPlay((e.clientX-rc.left)/rc.width*AN.buf.duration);break}
+    case 'anT0':case 'anT1':{const r=anRec();if(!r||!AN.buf)break;const p=pPos(),tr=r.trim?r.trim.slice():[0,AN.buf.duration];tr[act==='anT0'?0:1]=p;
+      if(tr[1]-tr[0]<.3){toast('Alun pitää olla ennen loppua. Siirrä toistokohtaa ja yritä uudelleen.');break}r.trim=tr;save();renderAnBody();break}
+    case 'anTx':{const r=anRec();if(r){delete r.trim;save();renderAnBody()}break}
     case 'fs':fs();break;
     case 'accent':S.ui.accent=k;save();applyUI();renderSettings();break;
     case 'theme':S.ui.theme=k;save();applyUI();renderSettings();break;
@@ -674,7 +793,7 @@ document.addEventListener('click',e=>{const t=e.target;
     case 'wPause':S.active.wp=!S.active.wp;renderStep();save();break;
     case 'gCur':S.active.cur=S.active.cur===k?null:k;save();renderGoals();break;
     case 'recDel':sure(b,()=>{const ses=b.closest('.ses'),o=ses?S.sessions.find(x=>x.id===ses.dataset.id):S.active;if(!o)return;
-      o.recs=o.recs.filter(x=>x.id!==k);store.del('rec:'+k);save();if(ses)b.parentElement.remove();else renderGoals()});break;
+      o.recs=o.recs.filter(x=>x.id!==k);store.del('rec:'+k);store.del('trk:'+k);TRK.delete(k);save();if(ses)b.parentElement.remove();else renderGoals()});break;
     case 'lgAdd':addGoal($('#lgNew'),S.longGoals,renderJournal);break;
     case 'lgDel':S.longGoals.splice(+k,1);save();renderJournal();break;
     case 'sesDel':sure(b,()=>{const id=b.closest('.ses').dataset.id,s=S.sessions.find(x=>x.id===id);(s?.recs||[]).forEach(x=>store.del('rec:'+x.id));S.sessions=S.sessions.filter(x=>x.id!==id);save();renderJournal()});break;
@@ -702,6 +821,8 @@ document.addEventListener('change',e=>{const t=e.target,m=S.metro;
   else if(t.id==='rTarget')m.ramp.target=clamp(+t.value||120,30,240);
   else if(t.id==='a4'){S.a4=clamp(+t.value||440,415,446);t.value=S.a4;droneTune()}
   else if(t.id==='dFifth'){S.drone.fifth=t.checked;droneTune()}
+  else if(t.id==='thrG'||t.id==='thrY'){const th=S.ui.thr;if(t.id==='thrG')th.g=clamp(Math.round(+t.value)||10,2,30);else th.y=clamp(Math.round(+t.value)||25,5,60);if(th.y<=th.g)th.y=th.g+1;renderSettings()}
+  else if(t.id==='anTon'){anSet(c=>c.tonic=+t.value);return}
   else if(t.id==='sRt'){S.draft.rid=t.value;renderPrev()}
   else if(t.dataset.gi!==undefined&&t.type==='checkbox'){const g=curGoals()[+t.dataset.gi];g.done=t.checked;if(S.active&&g.done&&S.active.cur===g.id)S.active.cur=null;renderGoals()}
   else if(t.dataset.lg!==undefined)S.longGoals[+t.dataset.lg].done=t.checked;
